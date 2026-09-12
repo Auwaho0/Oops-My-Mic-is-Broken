@@ -1,6 +1,7 @@
 import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,7 +80,11 @@ async def validation_exception_handler(
         detail="The request entity failed validation checks.",
         instance=str(request.url),
         invalid_params=[
-            {"loc": list(err.get("loc", [])), "msg": err.get("msg"), "type": err.get("type")}
+            {
+                "loc": list(err.get("loc", [])),
+                "msg": err.get("msg"),
+                "type": err.get("type"),
+            }
             for err in exc.errors()
         ],
     )

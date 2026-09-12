@@ -1,4 +1,5 @@
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -9,13 +10,14 @@ class ProblemDetail(BaseModel):
     )
     title: str = Field(..., description="Short, human-readable summary of problem")
     status: int = Field(..., description="HTTP status code")
-    detail: Optional[str] = Field(
-        default=None, description="Human-readable explanation specific to this occurrence"
+    detail: str | None = Field(
+        default=None,
+        description="Human-readable explanation specific to this occurrence",
     )
-    instance: Optional[str] = Field(
+    instance: str | None = Field(
         default=None,
         description="URI reference that identifies the specific occurrence of the problem",
     )
-    invalid_params: Optional[list[dict[str, Any]]] = Field(
+    invalid_params: list[dict[str, Any]] | None = Field(
         default=None, description="Detailed validation error list if applicable"
     )
