@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -44,10 +44,12 @@ app.add_middleware(
 
 # Request ID middleware
 @app.middleware("http")
-async def request_id_middleware(request: Request, call_next) -> Response:
+async def request_id_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     request.state.request_id = request_id
-    response = await call_next(request)
+    response: Response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
 
