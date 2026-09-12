@@ -1,17 +1,18 @@
 import { Globe, Send, Mail } from "lucide-react";
+import { ru } from "@/shared/i18n/ru";
 
 const LINKS = [
-  { Icon: Send, label: "t.me/oops_mic_broken", href: "#" },
-  { Icon: Mail, label: "mic@broken.dev", href: "#" },
+  { Icon: Send, label: "t.me/callsaver_app", href: "#" },
+  { Icon: Mail, label: "support@callsaver.local", href: "#" },
   { Icon: Globe, label: "github.com/callsaver", href: "#" },
 ];
 
 export default function Footer() {
   return (
-    <footer id="contacts" className=" bg-ink text-paper">
+    <footer id="contacts" className="bg-ink text-paper">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-10">
         <div className="border-t-2 border-ink pt-8">
-          <p className="text-sm font-medium tracking-widest text-blood">// КОНТАКТЫ</p>
+          <p className="text-sm font-medium tracking-widest text-blood">{ru.nav.contacts}</p>
           <div className="mt-4 flex flex-wrap gap-3">
             {LINKS.map(({ Icon, label }) => (
               <a
@@ -20,7 +21,7 @@ export default function Footer() {
                 onClick={(e) => {
                   if (label === "#") e.preventDefault();
                 }}
-                className="inline-flex items-center gap-2 border-2 border-ink px-4 py-2 text-xs sm:text-sm transition-all hover:bg-ink hover:text-paper hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 border-2 border-paper/30 px-4 py-2 text-xs sm:text-sm transition-all hover:bg-paper hover:text-ink hover:-translate-y-0.5"
               >
                 <Icon className="size-4" /> {label}
               </a>
@@ -28,9 +29,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-ink/30 pt-4 text-xs text-paper/70">
-          <p>© 2026 — ЛОКАЛЬНАЯ ВЕРСИЯ — CTRL+Z НЕ РАБОТАЕТ</p>
-          <p>[×] в шапке закрывает окно. или нет?</p>
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-paper/20 pt-4 text-xs text-paper/70">
+          <p>{ru.app.footerCopyright}</p>
+          <p>{ru.app.footerTip}</p>
         </div>
       </div>
     </footer>

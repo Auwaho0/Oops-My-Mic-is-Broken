@@ -4,27 +4,39 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@tanstack/react-query": "^5.102.8",
+    "axios": "^1.20.0",
     "clsx": "2.1.1",
     "lucide-react": "^1.37.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "react-hook-form": "^7.88.0",
+    "react-router-dom": "^7.18.3",
+    "sonner": "^2.0.8",
     "tailwind-merge": "3.4.0",
+    "zod": "^4.6.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
+    "jsdom": "^30.0.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.3.2",
-    "vite-plugin-singlefile": "2.3.0"
+    "vite-plugin-singlefile": "2.3.0",
+    "vitest": "^5.0.0"
   }
 }

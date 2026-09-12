@@ -6,7 +6,7 @@ import {
   useState, useCallback,
   useMemo
 } from 'react';
-import '@/shared/ui/basebutton/BaseButton.css';
+import '@/shared/ui/baseButton/BaseButton.css';
 
 type TButtonSize = 'sm' | 'md' | 'lg';
 

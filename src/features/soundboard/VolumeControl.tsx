@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { ru } from "@/shared/i18n/ru";
 
 interface VolumeControlProps {
   volume: number;
@@ -14,7 +15,7 @@ export const VolumeControl = memo(({ volume, caption, onChange }: VolumeControlP
           htmlFor="awkward"
           className="font-display text-xl sm:text-2xl font-semibold uppercase"
         >
-          Уровень неловкости
+          {ru.soundboard.awkwardLevel}
         </label>
         <span className="font-display text-2xl sm:text-3xl font-bold tabular-nums text-blood">
           {volume}%
@@ -27,7 +28,7 @@ export const VolumeControl = memo(({ volume, caption, onChange }: VolumeControlP
         max={100}
         value={volume}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="awkward mt-3"
+        className="awkward mt-3 cursor-pointer"
       />
       <p className="mt-2 text-xs sm:text-sm text-ink/70">→ {caption}</p>
     </div>

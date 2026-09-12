@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { CATEGORIES, EXCUSES, type ExcuseCategory } from "@/data/excuses";
 import { cn } from "@/utils/cn";
+import { ru } from "@/shared/i18n/ru";
 import Reveal from "../shared/ui/reveal/Reveal";
 
 export default function Generator() {
@@ -52,6 +54,7 @@ export default function Generator() {
       ta.remove();
     }
     setCopied(true);
+    toast.success(ru.excuses.copiedButton);
     window.setTimeout(() => setCopied(false), 1600);
   };
 
@@ -63,14 +66,13 @@ export default function Generator() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-24">
         <Reveal>
           <p className="text-sm text-blood font-medium tracking-widest">
-            // МОДУЛЬ Б — ГЕНЕРАТОР ТЕКСТОВЫХ АЛИБИ
+            {ru.excuses.moduleBadge}
           </p>
           <h2 className="mt-3 font-display font-bold uppercase leading-[0.9] text-[clamp(2.4rem,7vw,5.5rem)]">
-            Дай отговорку
+            {ru.excuses.heading}
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-paper/70">
-            Выбирай калибр — от вежливого «отключаюсь по семейным обстоятельствам» до «микрофон съела
-            собака». Копируй — и вставляй в чат созвона, не вставая с дивана.
+            {ru.excuses.description}
           </p>
         </Reveal>
 
@@ -84,7 +86,7 @@ export default function Generator() {
                 onClick={() => setCategory(c.id)}
                 title={c.hint}
                 className={cn(
-                  "border-2 px-4 py-2 text-xs sm:text-sm font-medium tracking-wide transition-all",
+                  "border-2 px-4 py-2 text-xs sm:text-sm font-medium tracking-wide transition-all cursor-pointer",
                   category === c.id
                     ? "border-paper bg-paper text-ink shadow-[4px_4px_0_var(--color-blood)]"
                     : "border-paper/40 text-paper/80 hover:border-paper hover:text-paper",
@@ -101,7 +103,7 @@ export default function Generator() {
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_auto]">
             <div className="relative border-[3px] border-paper/80 bg-ink p-6 sm:p-8 min-h-[10rem]">
               <span className="absolute -top-3 left-5 bg-ink px-2 text-[10px] tracking-widest text-paper/60">
-                ВХОДЯЩЕЕ СООБЩЕНИЕ · {cat.label}
+                {ru.excuses.incomingMessage} {cat.label}
               </span>
               {full ? (
                 <p className="font-mono text-lg sm:text-2xl leading-snug">
@@ -111,15 +113,15 @@ export default function Generator() {
                 </p>
               ) : (
                 <p className="font-mono text-lg sm:text-2xl text-paper/40">
-                  [ жми кнопку — получишь алиби ]
+                  {ru.excuses.placeholder}
                 </p>
               )}
               <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-paper/50">
-                <span>отправлено: только что</span>
+                <span>{ru.excuses.sentPrefix}</span>
                 <span>·</span>
-                <span>устройство: mic_broken_v0.3</span>
+                <span>{ru.excuses.devicePrefix}</span>
                 <span>·</span>
-                <span>сгенерировано за сессию: {count}</span>
+                <span>{ru.excuses.sessionCountPrefix} {count}</span>
               </div>
             </div>
 
@@ -127,17 +129,17 @@ export default function Generator() {
               <button
                 type="button"
                 onClick={generate}
-                className="group inline-flex flex-1 lg:flex-none items-center justify-center gap-3 border-[3px] border-paper bg-blood px-6 py-5 font-display text-xl sm:text-2xl font-semibold uppercase text-paper shadow-[6px_6px_0_var(--color-paper)] transition-all hover:-translate-y-1 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                className="group cursor-pointer inline-flex flex-1 lg:flex-none items-center justify-center gap-3 border-[3px] border-paper bg-blood px-6 py-5 font-display text-xl sm:text-2xl font-semibold uppercase text-paper shadow-[6px_6px_0_var(--color-paper)] transition-all hover:-translate-y-1 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
               >
                 <RefreshCw className="size-6 transition-transform duration-500 group-hover:rotate-180" />
-                Дай отговорку
+                {ru.excuses.generateButton}
               </button>
               <button
                 type="button"
                 onClick={copy}
                 disabled={!full}
                 className={cn(
-                  "inline-flex flex-1 lg:flex-none items-center justify-center gap-2 border-[3px] border-paper px-5 py-3 text-sm font-medium tracking-wide transition-all",
+                  "cursor-pointer inline-flex flex-1 lg:flex-none items-center justify-center gap-2 border-[3px] border-paper px-5 py-3 text-sm font-medium tracking-wide transition-all",
                   !full && "opacity-40 cursor-not-allowed",
                   copied
                     ? "bg-ok text-paper"
@@ -145,7 +147,7 @@ export default function Generator() {
                 )}
               >
                 {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                {copied ? "СКОПИРОВАНО!" : "СКОПИРОВАТЬ В БУФЕР"}
+                {copied ? ru.excuses.copiedButton : ru.excuses.copyButton}
               </button>
             </div>
           </div>

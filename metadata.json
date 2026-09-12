@@ -1,0 +1,6 @@
+{
+  "name": "Oops, My Mic is Broken",
+  "description": "Excuse generator and soundboard of ambient background noises for online meetings and video calls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,30 +1,29 @@
-// src/pages/Hero.tsx (или где у вас этот компонент)
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   StatusDisplay,
-  STATUS_COUNT
+  STATUS_COUNT,
 } from "@/features/hero/ui/StatusDisplay";
+import { useUIStore } from "@/store/uiStore";
+import { ru } from "@/shared/i18n/ru";
 
-
-import "@/widgets/hero/Hero.css"
-
+import "@/widgets/hero/Hero.css";
 
 export default function Hero() {
-  const [status, setStatus] = useState(0);
+  const status = useUIStore((s) => s.statusIndex);
+  const setStatus = useUIStore((s) => s.setStatusIndex);
 
   const handleStatus = useCallback(() => {
-    setStatus((v) => (v + 1) % STATUS_COUNT);
-  }, []);
+    setStatus((status + 1) % STATUS_COUNT);
+  }, [status, setStatus]);
+
   const dataNow = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   return (
     <section id="top" className="relative mx-auto max-w-7xl px-4 sm:px-6 pt-10 sm:pt-16 pb-12">
       {/* печать-стикер */}
       <div className="absolute right-4 sm:right-8 top-10 sm:top-14 rotate-6 border-2 border-blood px-4 py-2 text-blood pointer-events-none hidden sm:block">
-        <p className="font-mono font-bold text-[18px] leading-tight text-center">
-          ПРОВЕРЕНО:
-          <br />
-          ЗВУЧИТ УБЕДИТЕЛЬНО
+        <p className="font-mono font-bold text-[18px] leading-tight text-center whitespace-pre-line">
+          {ru.app.verifiedBadge}
         </p>
       </div>
 
@@ -37,12 +36,12 @@ export default function Hero() {
             <span className="anim-strike absolute left-[-2%] right-[-3%] top-[54%] h-[0.075em] bg-ink -rotate-1 pointer-events-none" />
           </span>
           <span className="font-serif italic font-medium normal-case tracking-normal leading-none text-[clamp(1.5rem,4.6vw,3.9rem)] pb-[0.08em]">
-            (или нет?)
+            {ru.app.subtitle}
           </span>
         </span>
       </h1>
 
-      {/* Используем вынесенный компонент */}
+      {/* Вынесенный компонент статуса */}
       <StatusDisplay status={status} onClick={handleStatus} />
 
       <p className="mt-8 text-xs sm:text-sm text-ink/80">
