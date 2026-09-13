@@ -1,19 +1,31 @@
+/* ==========================================================================
+   Глобальные стили приложения CallSaver
+   Используется Tailwind CSS v4 с единой точкой входа.
+   Все кастомные анимации и бруталистские компоненты собраны здесь.
+   ========================================================================== */
+
 @import "tailwindcss";
 
+/* --------------------------------------------------------------------------
+   Цветовая палитра и шрифтовые переменные темы
+   Газетный стиль (газетная бумага, чернила, акцентный красный и ретро-шрифты)
+   -------------------------------------------------------------------------- */
 @theme {
-  --color-paper: #e9e4d6;
-  --color-paper-dark: #dcd5c2;
-  --color-ink: #16130f;
-  --color-blood: #c81e14;
-  --color-ok: #2f7d32;
-  --color-warn: #d99a1b;
+  --color-paper: #e9e4d6;       /* Основной фон: состаренная бумага */
+  --color-paper-dark: #dcd5c2;  /* Затемненная бумага для карточек */
+  --color-ink: #16130f;         /* Глубокие чернила для текста и рамок */
+  --color-blood: #c81e14;       /* Акцентный красный цвет */
+  --color-ok: #2f7d32;          /* Зеленый статус готовности */
+  --color-warn: #d99a1b;        /* Желтый/янтарный статус предупреждения */
 
   --font-display: "Oswald", "Arial Narrow", sans-serif;
   --font-mono: "Courier Prime", "Courier New", monospace;
   --font-serif: "Playfair Display", Georgia, serif;
-
 }
 
+/* --------------------------------------------------------------------------
+   Базовые настройки документа
+   -------------------------------------------------------------------------- */
 html {
   scroll-behavior: smooth;
 }
@@ -25,17 +37,22 @@ body {
   overflow-x: hidden;
 }
 
+/* Стилизация выделения текста */
 ::selection {
   background: var(--color-ink);
   color: var(--color-paper);
 }
 
+/* Доступность: пунктирная обводка при навигации с клавиатуры */
 :focus-visible {
   outline: 2px dashed var(--color-ink);
   outline-offset: 3px;
 }
 
-/* ---- brutalist range slider ("уровень неловкости") ---- */
+/* --------------------------------------------------------------------------
+   Бруталистский ползунок «Уровень неловкости» (Custom Range Slider)
+   Плавное управление громкостью Web Audio API
+   -------------------------------------------------------------------------- */
 input[type="range"].awkward {
   -webkit-appearance: none;
   appearance: none;
@@ -80,75 +97,142 @@ input[type="range"].awkward:active::-webkit-slider-thumb {
   transform: scale(1.15) rotate(3deg);
 }
 
-/* ---- keyframes ---- */
+/* --------------------------------------------------------------------------
+   Базовые стили интерактивных кнопок (BaseButton)
+   Фирменная черная рамка со смещением тени при клике
+   -------------------------------------------------------------------------- */
+.btn-base {
+  border: 2px solid var(--btn-border, #111);
+  background-color: var(--btn-bg, var(--color-paper));
+  color: var(--btn-text, #111);
+  font-weight: 700;
+  box-shadow: 3px 3px 0 #111;
+  transition: transform 0.05s ease, box-shadow 0.05s ease,
+    background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+  touch-action: manipulation;
+}
 
+@media (hover: hover) and (pointer: fine) {
+  .btn-base:hover {
+    border-color: var(--btn-border-hover, #111);
+    background-color: var(--btn-bg-hover, var(--color-paper));
+    color: var(--btn-text-hover, #111);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 #111;
+  }
+}
+
+.btn-base:active,
+.btn-base--active {
+  border-color: var(--btn-border-active, #111);
+  background-color: var(--btn-bg-active, var(--color-paper));
+  color: var(--btn-text-active, #111);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #111;
+}
+
+.btn-base:focus-visible {
+  outline: 2px dashed var(--color-ink);
+  outline-offset: 3px;
+}
+
+.btn-base:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   Ключевые кадры анимаций (Keyframes)
+   -------------------------------------------------------------------------- */
+
+/* Бегущая строка в заголовке */
 @keyframes marquee-x {
   from {
     transform: translateX(0);
   }
-
   to {
     transform: translateX(-50%);
   }
 }
 
+/* Анимированный эквалайзер на активных звуковых кнопках */
 @keyframes eq-bar {
   0% {
     transform: scaleY(0.2);
   }
-
   100% {
     transform: scaleY(1);
   }
 }
 
-
+/* Мигающий курсор печатной машинки */
 @keyframes caret-blink {
-
-  0%,
-  49% {
+  0%, 49% {
     opacity: 1;
   }
-
-  50%,
-  100% {
+  50%, 100% {
     opacity: 0;
   }
 }
 
+/* Плавное всплывание элементов при скролле */
 @keyframes rise-in {
   from {
     opacity: 0;
     transform: translateY(28px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
+/* Легкое покачивание карточки */
 @keyframes wobble {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: rotate(0deg);
   }
-
   25% {
     transform: rotate(-1.5deg);
   }
-
   75% {
     transform: rotate(1.5deg);
   }
 }
 
+/* Анимация перечёркивания слова "сломан" в Hero */
+@keyframes strike-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Пульсирующий индикатор активного микрофона */
+@keyframes blink-dot {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Вспомогательные анимационные классы
+   -------------------------------------------------------------------------- */
 .font-mono-code {
   font-family: 'Courier Prime', monospace;
   font-weight: 700;
 }
-
 
 .anim-marquee {
   animation: marquee-x 26s linear infinite;
@@ -167,7 +251,33 @@ input[type="range"].awkward:active::-webkit-slider-thumb {
   animation: wobble 0.3s ease-in-out;
 }
 
-/* equalizer bars on active sound buttons */
+/* Точки индикации статуса */
+.blink {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.anim-blink {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -25%;
+  left: -25%;
+  width: 150%;
+  height: 150%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  animation: blink-dot 1s ease-in-out infinite;
+}
+
+/* Полосы эквалайзера для визуализации играющего звука */
 .eq span {
   display: inline-block;
   width: 4px;
@@ -189,7 +299,7 @@ input[type="range"].awkward:active::-webkit-slider-thumb {
   animation-delay: 0.06s;
 }
 
-/* scroll reveal */
+/* Плавное появление при скролле (Reveal) */
 .reveal {
   opacity: 0;
   transform: translateY(28px);
@@ -201,12 +311,13 @@ input[type="range"].awkward:active::-webkit-slider-thumb {
   transform: translateY(0);
 }
 
+/* Поддержка режима пониженной анимации (Accessibility) */
 @media (prefers-reduced-motion: reduce) {
-
   .anim-marquee,
   .anim-blink,
   .eq span,
-  .anim-wobble {
+  .anim-wobble,
+  .anim-strike {
     animation: none;
   }
 

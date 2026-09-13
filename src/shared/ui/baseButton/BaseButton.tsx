@@ -1,30 +1,50 @@
-// shared/ui/Button/Button.tsx
-import { cn } from '@/utils/cn';
+/**
+ * shared/ui/baseButton/BaseButton.tsx
+ * 
+ * Универсальный компонент кнопки в газетно-бруталистском стиле.
+ * 
+ * Ключевые концепции для изучения React:
+ * 1. `forwardRef` — позволяет родительскому компоненту получить прямую ссылку (ref) на нативный HTML-элемент <button>.
+ * 2. `useCallback` — мемоизирует функции обработчиков событий, чтобы они не создавались заново при каждом рендере.
+ * 3. `useMemo` — оптимизирует вычисление классов Tailwind и пересчитывает их только при изменении входных пропсов.
+ * 4. `cn(...)` — утилита объединения классов (clsx + tailwind-merge) для корректного разрешения конфликтов Tailwind.
+ */
+
 import {
   forwardRef,
-  ButtonHTMLAttributes,
-  useState, useCallback,
-  useMemo
+  type ButtonHTMLAttributes,
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+  type MouseEvent,
+  type TouchEvent,
 } from 'react';
-import '@/shared/ui/baseButton/BaseButton.css';
+import { cn } from '@/utils/cn';
 
-type TButtonSize = 'sm' | 'md' | 'lg';
+// Допустимые размеры кнопки
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface IButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  size?: TButtonSize;
-  children: React.ReactNode;
+export interface BaseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Размер кнопки: sm (мелкий), md (стандартный), lg (крупный) */
+  size?: ButtonSize;
+  /** Дочерние элементы (текст, иконки) */
+  children: ReactNode;
 }
 
-const sizeVariants: Record<TButtonSize, string> = {
-  sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base',
+// Варианты стилей в зависимости от размера
+const sizeVariants: Record<ButtonSize, string> = {
+  sm: 'text-xs px-2.5 py-1',
+  md: 'text-sm px-4 py-2',
+  lg: 'text-base px-6 py-3',
 };
 
+// Базовые Tailwind-классы для газетного стиля:
+// Класс .btn-base описан глобально в src/index.css
 const baseStyles =
   'btn-base inline-flex items-center justify-center font-bold tracking-tight cursor-pointer select-none transition-all disabled:opacity-50 disabled:cursor-not-allowed';
 
-export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
+export const Button = forwardRef<HTMLButtonElement, BaseButtonProps>(
   (
     {
       size = 'md',
@@ -40,11 +60,12 @@ export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
     },
     ref
   ) => {
+    // Состояние активного нажатия (для имитации физического вдавливания кнопки)
     const [isActive, setIsActive] = useState(false);
 
-    // Обработчики мыши
+    // --- Обработчики нажатий мыши ---
     const handleMouseDown = useCallback(
-      (e: React.MouseEvent<HTMLButtonElement>) => {
+      (e: MouseEvent<HTMLButtonElement>) => {
         setIsActive(true);
         onMouseDown?.(e);
       },
@@ -52,7 +73,7 @@ export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
     );
 
     const handleMouseUp = useCallback(
-      (e: React.MouseEvent<HTMLButtonElement>) => {
+      (e: MouseEvent<HTMLButtonElement>) => {
         setIsActive(false);
         onMouseUp?.(e);
       },
@@ -60,16 +81,16 @@ export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
     );
 
     const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLButtonElement>) => {
+      (e: MouseEvent<HTMLButtonElement>) => {
         setIsActive(false);
         onMouseLeave?.(e);
       },
       [onMouseLeave]
     );
 
-    // Обработчики тача
+    // --- Обработчики касаний на мобильных устройствах (Touch Events) ---
     const handleTouchStart = useCallback(
-      (e: React.TouchEvent<HTMLButtonElement>) => {
+      (e: TouchEvent<HTMLButtonElement>) => {
         setIsActive(true);
         onTouchStart?.(e);
       },
@@ -77,7 +98,7 @@ export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
     );
 
     const handleTouchEnd = useCallback(
-      (e: React.TouchEvent<HTMLButtonElement>) => {
+      (e: TouchEvent<HTMLButtonElement>) => {
         setIsActive(false);
         onTouchEnd?.(e);
       },
@@ -85,14 +106,14 @@ export const Button = forwardRef<HTMLButtonElement, IButtonProps>(
     );
 
     const handleTouchCancel = useCallback(
-      (e: React.TouchEvent<HTMLButtonElement>) => {
+      (e: TouchEvent<HTMLButtonElement>) => {
         setIsActive(false);
         onTouchCancel?.(e);
       },
       [onTouchCancel]
     );
 
-    // Мемоизация класса
+    // Мемоизация итоговой строки классов
     const classes = useMemo(
       () => cn(baseStyles, sizeVariants[size], isActive && 'btn-base--active', className),
       [size, isActive, className]
