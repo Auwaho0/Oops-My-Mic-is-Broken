@@ -30,8 +30,7 @@ backend/app/core/rate_limit.py — Механизм ограничения ча�
 
 import time
 from collections import defaultdict
-from collections.abc import Callable
-from typing import Optional
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -73,7 +72,7 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
             pipe.incr(cache_key)  # Увеличиваем счетчик обращений на 1
             pipe.ttl(cache_key)   # Узнаем оставшееся время жизни ключа
             results = await pipe.execute()
-            
+
             current_count = int(results[0])
             ttl = int(results[1])
 
@@ -115,7 +114,7 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
 
     # Очищаем таймстемпы, которые вышли за пределы текущего временного окна
     valid_timestamps = [t for t in timestamps if t > window_start]
-    
+
     if len(valid_timestamps) >= times:
         earliest = valid_timestamps[0]
         retry_after = max(1, int(seconds - (now - earliest)))
@@ -150,7 +149,7 @@ async def rate_limit_auth(request: Request) -> None:
 
 
 async def rate_limit_upload(
-    current_user: User = Depends(get_current_user),
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
     Защита загрузки звуков:
@@ -161,7 +160,7 @@ async def rate_limit_upload(
 
 
 async def rate_limit_create_excuse(
-    current_user: User = Depends(get_current_user),
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
     Защита создания кастомных отговорок:

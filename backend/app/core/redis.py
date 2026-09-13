@@ -1,15 +1,16 @@
 import logging
-from typing import Optional
+
 import redis.asyncio as aioredis
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_redis_client: Optional[aioredis.Redis] = None
+_redis_client: aioredis.Redis | None = None
 
 
-async def get_redis_client() -> Optional[aioredis.Redis]:
+async def get_redis_client() -> aioredis.Redis | None:
     """
     Returns the singleton async Redis client instance.
     Attempts ping check; if Redis is unreachable, returns None so services can fallback gracefully.

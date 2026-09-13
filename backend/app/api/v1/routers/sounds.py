@@ -1,6 +1,6 @@
 import os
-from typing import Annotated
 import uuid
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -37,11 +37,12 @@ router = APIRouter(prefix="/sounds", tags=["sounds"])
 async def get_sounds(
     sound_service: Annotated[SoundService, Depends(get_sound_service)],
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
-    category: SoundCategory | None = Query(
-        default=None, description="Filter by sound category"
-    ),
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=50, ge=1, le=100),
+    category: Annotated[
+        SoundCategory | None,
+        Query(description="Filter by sound category"),
+    ] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> SoundListResponse:
     offset = (page - 1) * page_size
     sounds, total = await sound_service.get_sounds(
@@ -70,18 +71,20 @@ async def get_sounds(
 async def upload_sound(
     sound_service: Annotated[SoundService, Depends(get_sound_service)],
     current_user: Annotated[User, Depends(get_current_user)],
-    file: UploadFile = File(..., description="Audio file binary"),
-    title: str = Form(..., min_length=2, max_length=100, description="Sound label/title"),
-    category: SoundCategory = Form(
-        default=SoundCategory.OTHER,
-        description="Sound category (renovation, family, tech, other)",
-    ),
-    estimated_duration: float = Form(
-        default=10.0,
-        ge=1.0,
-        le=30.0,
-        description="Estimated duration in seconds (max 30s)",
-    ),
+    file: Annotated[UploadFile, File(description="Audio file binary")],
+    title: Annotated[str, Form(min_length=2, max_length=100, description="Sound label/title")],
+    category: Annotated[
+        SoundCategory,
+        Form(description="Sound category (renovation, family, tech, other)"),
+    ] = SoundCategory.OTHER,
+    estimated_duration: Annotated[
+        float,
+        Form(
+            ge=1.0,
+            le=30.0,
+            description="Estimated duration in seconds (max 30s)",
+        ),
+    ] = 10.0,
 ) -> SoundRead:
     sound = await sound_service.upload_sound(
         file=file,

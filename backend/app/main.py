@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Управление жизненным циклом (Startup & Shutdown) приложения.
     """
     logger.info("Application starting up in %s mode", settings.APP_ENV)
-    
+
     # 1. При запуске: проверяем подключение к БД и сидируем базовые отговорки
     try:
         async with AsyncSessionLocal() as session:
@@ -67,9 +67,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("System excuses seeded successfully.")
     except Exception as exc:
         logger.warning("Could not seed system excuses on startup: %s", exc)
-        
+
     yield  # В этот момент приложение активно и обрабатывает запросы пользователей
-    
+
     # 2. При завершении: корректно закрываем соединения с Redis
     logger.info("Application shutting down...")
     await close_redis_client()
@@ -119,7 +119,7 @@ async def request_logging_middleware(
     try:
         # Передаем запрос дальше по цепочке в роутер
         response: Response = await call_next(request)
-        
+
         # Считаем длительность обработки
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 

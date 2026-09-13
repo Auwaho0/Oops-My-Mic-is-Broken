@@ -1,6 +1,6 @@
-from collections.abc import Sequence
 import logging
 import uuid
+from collections.abc import Sequence
 
 from fastapi import HTTPException, UploadFile, status
 
