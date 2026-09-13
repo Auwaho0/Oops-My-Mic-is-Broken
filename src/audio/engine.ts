@@ -1,7 +1,7 @@
 /* Процедурный синтез фоновых шумов на Web Audio API.
    Никаких mp3 — всё генерируется осцилляторами и шумом в реальном времени. */
 
-export type SoundId =
+export type BuiltinSoundId =
   | "drill"
   | "jackhammer"
   | "hammer"
@@ -11,6 +11,8 @@ export type SoundId =
   | "static"
   | "robot"
   | "doorbell";
+
+export type SoundId = BuiltinSoundId | (string & {});
 
 type StopFn = () => void;
 
@@ -53,7 +55,7 @@ class AudioEngine {
     }
   }
 
-  start(id: SoundId) {
+  start(id: SoundId, fileUrl?: string) {
     if (this.activeSounds.has(id)) return;
     const { ctx, master } = this.init();
 
@@ -87,9 +89,46 @@ class AudioEngine {
         stopFn = this.createDoorbell(ctx, master);
         break;
       default:
-        return;
+        if (fileUrl) {
+          stopFn = this.createAudioElementSource(ctx, master, fileUrl);
+        } else {
+          return;
+        }
     }
     this.activeSounds.set(id, stopFn);
+  }
+
+  /* Воспроизведение пользовательского аудиофайла через HTMLAudioElement + MediaElementAudioSourceNode -> masterGain */
+  private createAudioElementSource(ctx: AudioContext, destination: AudioNode, url: string): StopFn {
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.src = url;
+    audio.loop = true;
+
+    let sourceNode: MediaElementAudioSourceNode | null = null;
+    try {
+      sourceNode = ctx.createMediaElementSource(audio);
+      sourceNode.connect(destination);
+    } catch {
+      // If MediaElementSource fails (e.g. cross-origin restrictions in some browsers), fallback to direct audio element volume
+      audio.volume = Math.max(0, Math.min(1, this.volume));
+    }
+
+    audio.play().catch((err) => {
+      console.warn("Audio playback failed or prevented by autoplay policy:", err);
+    });
+
+    return () => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+        if (sourceNode) {
+          sourceNode.disconnect();
+        }
+      } catch {
+        // ignore
+      }
+    };
   }
 
   stop(id: SoundId) {

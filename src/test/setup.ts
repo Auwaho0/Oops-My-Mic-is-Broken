@@ -5,7 +5,13 @@ class MockAudioContext {
   createOscillator() {
     return {
       type: "sine",
-      frequency: { value: 440, setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
+      frequency: {
+        value: 440,
+        setValueAtTime: () => {},
+        linearRampToValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {},
+        setTargetAtTime: () => {},
+      },
       connect: () => {},
       start: () => {},
       stop: () => {},
@@ -14,7 +20,13 @@ class MockAudioContext {
   }
   createGain() {
     return {
-      gain: { value: 1, setValueAtTime: () => {}, linearRampToValueAtTime: () => {} },
+      gain: {
+        value: 1,
+        setValueAtTime: () => {},
+        linearRampToValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {},
+        setTargetAtTime: () => {},
+      },
       connect: () => {},
       disconnect: () => {},
     };
@@ -22,8 +34,18 @@ class MockAudioContext {
   createBiquadFilter() {
     return {
       type: "lowpass",
-      frequency: { value: 1000, setValueAtTime: () => {} },
-      Q: { value: 1 },
+      frequency: {
+        value: 1000,
+        setValueAtTime: () => {},
+        linearRampToValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {},
+      },
+      Q: {
+        value: 1,
+        setValueAtTime: () => {},
+        linearRampToValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {},
+      },
       connect: () => {},
       disconnect: () => {},
     };
@@ -74,3 +96,17 @@ class MockIntersectionObserver {
 
 // @ts-expect-error Mock IntersectionObserver on window
 window.IntersectionObserver = MockIntersectionObserver;
+
+// Mock matchMedia for PWA display-mode detection
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}

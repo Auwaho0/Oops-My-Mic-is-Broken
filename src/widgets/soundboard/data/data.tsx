@@ -1,4 +1,4 @@
-import {type Group } from "@/features/soundboard/GroupSection";
+import { type Group } from "@/features/soundboard/GroupSection";
 import {
   Baby,
   BellRing,
@@ -10,62 +10,97 @@ import {
   Radio,
   Wrench,
 } from "lucide-react";
+import { ru } from "@/shared/i18n/ru";
+
 export const GROUPS: Group[] = [
   {
-    title: "[ РЕМОНТ ]",
-    note: "сосед сверху взял перфоратор в аренду на месяц",
+    id: "renovation",
+    title: ru.soundboard.groups.renovation.title,
+    note: ru.soundboard.groups.renovation.note,
     items: [
-      { id: "drill", label: "Дрель", sub: "штробит стену с 8 утра", Icon: Wrench },
+      {
+        id: "drill",
+        label: ru.soundboard.sounds.drill.label,
+        sub: ru.soundboard.sounds.drill.sub,
+        Icon: Wrench,
+        durationSec: 12,
+      },
       {
         id: "jackhammer",
-        label: "Перфоратор",
-        sub: "девятый этаж, слышно всем",
+        label: ru.soundboard.sounds.jackhammer.label,
+        sub: ru.soundboard.sounds.jackhammer.sub,
         Icon: Construction,
+        durationSec: 10,
       },
-      { id: "hammer", label: "Молоток", sub: "аккуратные удары. почти", Icon: Hammer },
+      {
+        id: "hammer",
+        label: ru.soundboard.sounds.hammer.label,
+        sub: ru.soundboard.sounds.hammer.sub,
+        Icon: Hammer,
+        durationSec: 10,
+      },
     ],
   },
   {
-    title: "[ СЕМЬЯ ]",
-    note: "домашние не в курсе, что у тебя созвон",
+    id: "family",
+    title: ru.soundboard.groups.family.title,
+    note: ru.soundboard.groups.family.note,
     items: [
       {
         id: "baby",
-        label: "Плач ребёнка",
-        sub: "ему просто нужно внимание",
+        label: ru.soundboard.sounds.baby.label,
+        sub: ru.soundboard.sounds.baby.sub,
         Icon: Baby,
+        durationSec: 10,
       },
-      { id: "dog", label: "Лай собаки", sub: "охраняет от курьера", Icon: Dog },
+      {
+        id: "dog",
+        label: ru.soundboard.sounds.dog.label,
+        sub: ru.soundboard.sounds.dog.sub,
+        Icon: Dog,
+        durationSec: 10,
+      },
       {
         id: "socks",
-        label: "«Мам, где носки?»",
-        sub: "крик сквозь две стены",
+        label: ru.soundboard.sounds.socks.label,
+        sub: ru.soundboard.sounds.socks.sub,
         Icon: Home,
+        durationSec: 8,
       },
     ],
   },
   {
-    title: "[ ТЕХНИКА ]",
-    note: "проблемы на стороне провайдера, вы уж простите",
+    id: "tech",
+    title: ru.soundboard.groups.tech.title,
+    note: ru.soundboard.groups.tech.note,
     items: [
       {
         id: "static",
-        label: "Статический шум",
-        sub: "классика плохой связи",
+        label: ru.soundboard.sounds.static.label,
+        sub: ru.soundboard.sounds.static.sub,
         Icon: Radio,
+        durationSec: 12,
       },
       {
         id: "robot",
-        label: "Робот-голос",
-        sub: "в-в-вы м-меня с-слышите?",
+        label: ru.soundboard.sounds.robot.label,
+        sub: ru.soundboard.sounds.robot.sub,
         Icon: Cpu,
+        durationSec: 10,
       },
       {
         id: "doorbell",
-        label: "Звонок в дверь",
-        sub: "кто-то всегда не вовремя",
+        label: ru.soundboard.sounds.doorbell.label,
+        sub: ru.soundboard.sounds.doorbell.sub,
         Icon: BellRing,
+        durationSec: 8,
       },
     ],
+  },
+  {
+    id: "other",
+    title: ru.soundboard.groups.other.title,
+    note: ru.soundboard.groups.other.note,
+    items: [],
   },
 ];

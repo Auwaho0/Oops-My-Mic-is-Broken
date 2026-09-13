@@ -2,11 +2,16 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "@/App";
 import Generator from "@/components/Generator";
 import Soundboard from "@/widgets/soundboard/Soundboard";
+import { ProfilePage } from "@/features/auth/ui/ProfilePage";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+  },
+  {
+    path: "/me",
+    element: <ProfilePage />,
   },
   {
     path: "/excuses",

@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -9,17 +11,35 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.api import api_router
 from app.core.config import get_settings
+from app.core.database import AsyncSessionLocal
+from app.core.logging import request_id_ctx, setup_logging
+from app.core.rate_limit import get_client_ip
+from app.core.redis import close_redis_client
+from app.core.seeds import seed_system_excuses
 from app.schemas.errors import ProblemDetail
 from app.schemas.health import HealthResponse, ReadyResponse
 
 settings = get_settings()
 
+# Initialize structured JSON logging (§8)
+setup_logging(settings.APP_ENV)
+logger = logging.getLogger("callsaver.app")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Startup logic
+    logger.info("Application starting up in %s mode", settings.APP_ENV)
+    # Startup logic - seed system excuses
+    try:
+        async with AsyncSessionLocal() as session:
+            await seed_system_excuses(session)
+        logger.info("System excuses seeded successfully.")
+    except Exception as exc:
+        logger.warning("Could not seed system excuses on startup: %s", exc)
     yield
-    # Shutdown logic
+    # Shutdown logic - clean up Redis connections
+    logger.info("Application shutting down...")
+    await close_redis_client()
 
 
 app = FastAPI(
@@ -42,16 +62,47 @@ app.add_middleware(
 )
 
 
-# Request ID middleware
+# Request ID & Structured HTTP Access Logging Middleware (§8)
 @app.middleware("http")
-async def request_id_middleware(
+async def request_logging_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
+    # 1. Resolve or generate Request ID
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     request.state.request_id = request_id
-    response: Response = await call_next(request)
-    response.headers["X-Request-ID"] = request_id
-    return response
+    token = request_id_ctx.set(request_id)
+
+    client_ip = get_client_ip(request)
+    start_time = time.perf_counter()
+
+    try:
+        response: Response = await call_next(request)
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+        # Attach Request ID to response headers
+        response.headers["X-Request-ID"] = request_id
+
+        # Skip spamming logs for frequent health checks
+        if request.url.path not in ("/health", "/ready"):
+            logger.info(
+                "%s %s %s (%s ms)",
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+                extra={
+                    "http": {
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status_code": response.status_code,
+                        "duration_ms": duration_ms,
+                        "client_ip": client_ip,
+                    }
+                },
+            )
+        return response
+    finally:
+        request_id_ctx.reset(token)
 
 
 # RFC 7807 Problem Detail Handlers (§6)

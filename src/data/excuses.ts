@@ -1,14 +1,17 @@
-export type ExcuseCategory = "brazen" | "polite" | "tech" | "absurd";
+import type { ExcuseCategory } from "@/entities/excuse/types";
+
+export type { ExcuseCategory };
 
 export const CATEGORIES: { id: ExcuseCategory; label: string; hint: string }[] = [
-  { id: "brazen", label: "НАГЛЫЕ", hint: "для тех, кто даже не покраснел" },
+  { id: "rude", label: "НАГЛЫЕ", hint: "для тех, кто даже не покраснел" },
   { id: "polite", label: "ВЕЖЛИВЫЕ", hint: "с уважением к календарю коллег" },
-  { id: "tech", label: "ТЕХНИЧЕСКИЕ", hint: "виноват драйвер, не я" },
+  { id: "technical", label: "ТЕХНИЧЕСКИЕ", hint: "виноват драйвер, не я" },
   { id: "absurd", label: "АБСУРДНЫЕ", hint: "звучит как правда. почти" },
+  { id: "custom", label: "СВОИ", hint: "авторские секретные алиби" },
 ];
 
-export const EXCUSES: Record<ExcuseCategory, string[]> = {
-  brazen: [
+export const EXCUSES: Record<Exclude<ExcuseCategory, "custom">, string[]> = {
+  rude: [
     "Ребята, у меня сосед начал штробить стену. Я буду только в чате.",
     "Я вас слышу, но ответить не могу — кот лёг на клавиатуру и уходить не собирается.",
     "Мой микрофон сломался ещё в 2023-м, просто сообщаю об этом только сейчас.",
@@ -28,7 +31,7 @@ export const EXCUSES: Record<ExcuseCategory, string[]> = {
     "Позвольте откланяться: следующая встреча уже стучится в календарь.",
     "Спасибо за встречу! Итоги и свои комментарии пришлю письмом до конца дня.",
   ],
-  tech: [
+  technical: [
     "Драйвер аудиоустройства отвалился после обновления. Перезагрузка не помогает.",
     "Zoom не видит микрофон. Да, я уже переустановил. Да, дважды.",
     "Эхоподавление съедает мой голос: говорю — в эфире тишина.",

@@ -7,10 +7,11 @@ import Generator from "@/components/Generator";
 import About from "@/widgets/about/About";
 import Footer from "@/components/Footer";
 import Menu from "./widgets/menu/Menu";
+import { AuthModal } from "@/features/auth/ui/AuthModal";
+import { OfflineIndicator } from "@/shared/pwa/OfflineIndicator";
+import { Toaster } from "sonner";
 
 export default function App() {
-
-
   return (
     <div className="relative min-h-screen text-ink">
       {/* мятая бумага */}
@@ -29,11 +30,12 @@ export default function App() {
         <Ticker />
         <Soundboard />
         <Generator />
-
       </main>
 
       <Footer />
-
+      <AuthModal />
+      <OfflineIndicator />
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

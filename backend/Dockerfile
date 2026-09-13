@@ -20,4 +20,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with Gunicorn + Uvicorn workers in production (§4, §11)
+CMD ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]

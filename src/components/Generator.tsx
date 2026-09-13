@@ -1,19 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, RefreshCw } from "lucide-react";
+import { Check, Copy, RefreshCw, Sparkles, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIES, EXCUSES, type ExcuseCategory } from "@/data/excuses";
 import { cn } from "@/utils/cn";
 import { ru } from "@/shared/i18n/ru";
+import { excusesApi } from "@/features/excuses/api/excusesApi";
+import { useCurrentUser } from "@/features/auth/model/useAuth";
+import { useAuthUIStore } from "@/store/authStore";
+import { CustomExcusesManager } from "@/features/excuses/ui/CustomExcusesManager";
 import Reveal from "../shared/ui/reveal/Reveal";
 
 export default function Generator() {
-  const [category, setCategory] = useState<ExcuseCategory>("brazen");
+  const [category, setCategory] = useState<ExcuseCategory>("rude");
   const [full, setFull] = useState<string>("");
   const [shown, setShown] = useState("");
   const [copied, setCopied] = useState(false);
   const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [lastIdx, setLastIdx] = useState<Record<string, number>>({});
   const typeTimer = useRef<number | null>(null);
+
+  const { data: user } = useCurrentUser();
+  const openAuthModal = useAuthUIStore((state) => state.openAuthModal);
 
   /* печатная машинка */
   useEffect(() => {
@@ -23,7 +31,9 @@ export default function Generator() {
     const tick = () => {
       i += 1;
       setShown(full.slice(0, i));
-      if (i < full.length) typeTimer.current = window.setTimeout(tick, 16 + Math.random() * 22);
+      if (i < full.length) {
+        typeTimer.current = window.setTimeout(tick, 16 + Math.random() * 22);
+      }
     };
     typeTimer.current = window.setTimeout(tick, 120);
     return () => {
@@ -31,14 +41,49 @@ export default function Generator() {
     };
   }, [full]);
 
-  const generate = () => {
-    const pool = EXCUSES[category];
-    let idx = Math.floor(Math.random() * pool.length);
-    if (pool.length > 1 && idx === lastIdx[category]) idx = (idx + 1) % pool.length;
-    setLastIdx((m) => ({ ...m, [category]: idx }));
-    setFull(pool[idx]);
-    setCount((c) => c + 1);
+  const generate = async () => {
+    setIsLoading(true);
     setCopied(false);
+
+    try {
+      if (category === "custom") {
+        if (!user) {
+          openAuthModal("login");
+          toast.info(ru.excuses.custom.loginCta);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const res = await excusesApi.getRandomExcuse("custom");
+          setFull(res.text);
+          setCount((c) => c + 1);
+        } catch {
+          toast.info(ru.excuses.custom.emptyState);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // System categories (rude, polite, technical, absurd)
+      try {
+        const res = await excusesApi.getRandomExcuse(category);
+        setFull(res.text);
+        setCount((c) => c + 1);
+      } catch {
+        // Offline / fallback to bundled system excuses
+        const pool = EXCUSES[category];
+        let idx = Math.floor(Math.random() * pool.length);
+        if (pool.length > 1 && idx === lastIdx[category]) {
+          idx = (idx + 1) % pool.length;
+        }
+        setLastIdx((m) => ({ ...m, [category]: idx }));
+        setFull(pool[idx]);
+        setCount((c) => c + 1);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const copy = async () => {
@@ -86,12 +131,19 @@ export default function Generator() {
                 onClick={() => setCategory(c.id)}
                 title={c.hint}
                 className={cn(
-                  "border-2 px-4 py-2 text-xs sm:text-sm font-medium tracking-wide transition-all cursor-pointer",
+                  "border-2 px-4 py-2 text-xs sm:text-sm font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5",
                   category === c.id
                     ? "border-paper bg-paper text-ink shadow-[4px_4px_0_var(--color-blood)]"
                     : "border-paper/40 text-paper/80 hover:border-paper hover:text-paper",
                 )}
               >
+                {c.id === "custom" && (
+                  user ? (
+                    <UserCheck className="size-3.5 text-blood" />
+                  ) : (
+                    <Sparkles className="size-3.5 text-paper/50" />
+                  )
+                )}
                 {c.label}
               </button>
             ))}
@@ -129,9 +181,15 @@ export default function Generator() {
               <button
                 type="button"
                 onClick={generate}
-                className="group cursor-pointer inline-flex flex-1 lg:flex-none items-center justify-center gap-3 border-[3px] border-paper bg-blood px-6 py-5 font-display text-xl sm:text-2xl font-semibold uppercase text-paper shadow-[6px_6px_0_var(--color-paper)] transition-all hover:-translate-y-1 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+                disabled={isLoading}
+                className="group cursor-pointer inline-flex flex-1 lg:flex-none items-center justify-center gap-3 border-[3px] border-paper bg-blood px-6 py-5 font-display text-xl sm:text-2xl font-semibold uppercase text-paper shadow-[6px_6px_0_var(--color-paper)] transition-all hover:-translate-y-1 active:translate-x-1.5 active:translate-y-1.5 active:shadow-none disabled:opacity-50"
               >
-                <RefreshCw className="size-6 transition-transform duration-500 group-hover:rotate-180" />
+                <RefreshCw
+                  className={cn(
+                    "size-6 transition-transform duration-500",
+                    isLoading ? "animate-spin" : "group-hover:rotate-180"
+                  )}
+                />
                 {ru.excuses.generateButton}
               </button>
               <button
@@ -152,6 +210,20 @@ export default function Generator() {
             </div>
           </div>
         </Reveal>
+
+        {/* Custom excuses management panel (when 'custom' tab is selected) */}
+        {category === "custom" && (
+          <Reveal delay={150}>
+            <div className="mt-8 border-[3px] border-paper/40 bg-ink/90 p-6 sm:p-8">
+              <CustomExcusesManager
+                onSelectExcuse={(text) => {
+                  setFull(text);
+                  setCount((c) => c + 1);
+                }}
+              />
+            </div>
+          </Reveal>
+        )}
       </div>
     </section>
   );
