@@ -90,7 +90,7 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
                 retry_after = max(1, ttl if ttl > 0 else seconds)
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
+                    detail=f"Rate limit exceeded (Слишком много запросов). Try again in {retry_after} seconds.",
                     headers={
                         "Retry-After": str(retry_after),
                         "X-RateLimit-Limit": str(times),
@@ -121,7 +121,7 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
         _in_memory_cache[cache_key] = valid_timestamps
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
+            detail=f"Rate limit exceeded (Слишком много запросов). Try again in {retry_after} seconds.",
             headers={
                 "Retry-After": str(retry_after),
                 "X-RateLimit-Limit": str(times),

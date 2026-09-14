@@ -29,11 +29,14 @@ class StorageService:
     def _ensure_bucket(self) -> None:
         try:
             self.s3_client.head_bucket(Bucket=self.bucket)
-        except ClientError:
+        except Exception:
             try:
                 self.s3_client.create_bucket(Bucket=self.bucket)
             except Exception as e:
-                logger.warning(f"Could not initialize S3 bucket {self.bucket}: {e}")
+                logger.warning(
+                    f"Could not connect to S3 or initialize bucket '{self.bucket}': {e}. "
+                    "Falling back to local disk storage."
+                )
 
     async def upload_file(
         self,
