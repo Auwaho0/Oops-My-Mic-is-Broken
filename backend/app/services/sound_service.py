@@ -115,7 +115,7 @@ class SoundService:
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"File exceeds maximum allowed size of 5 MB (received {file_size / (1024*1024):.2f} MB).",
             )
-        if file_size < 128:
+        if file_size < 16:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File is empty or corrupted.",
