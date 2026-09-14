@@ -32,10 +32,10 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any
 
-# Переменная контекста для связи всех асинхронных логов с конкретным HTTP-запросом
+# Context variable linking all asynchronous logs to a specific HTTP request
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
-# Список ключей, значения которых категорически запрещено выводить в открытом виде
+# List of sensitive keys whose values must be scrubbed/masked from log output
 SENSITIVE_KEYS = {
     "password",
     "access_token",
@@ -49,7 +49,7 @@ SENSITIVE_KEYS = {
 
 def sanitize_data(data: Any) -> Any:
     """
-    Рекурсивно маскирует значения конфиденциальных полей в словарях и списках.
+    Recursively masks sensitive values within dictionaries and collections.
     """
     if isinstance(data, dict):
         sanitized = {}
@@ -66,11 +66,11 @@ def sanitize_data(data: Any) -> Any:
 
 class StructuredJSONFormatter(logging.Formatter):
     """
-    Форматтер логов, выводящий каждую запись в виде валидной JSON-строки.
+    Structured log formatter emitting each record as a valid JSON string.
     """
 
     def format(self, record: logging.LogRecord) -> str:
-        # Дата и время события в формате UTC ISO-8601
+        # Event timestamp in UTC ISO-8601 format
         now = datetime.now(timezone.utc).isoformat()
 
         log_payload: dict[str, Any] = {
@@ -83,31 +83,32 @@ class StructuredJSONFormatter(logging.Formatter):
             "line": record.lineno,
         }
 
-        # Если лог происходит в контексте HTTP-запроса — добавляем его сквозной ID
+        # If logging inside an HTTP request context, append request correlation ID
         req_id = request_id_ctx.get()
         if req_id:
             log_payload["request_id"] = req_id
 
-        # Если произошло исключение — прикрепляем форматированный стек вызовов
+        # If exception occurred, attach formatted stack trace
         if record.exc_info:
             log_payload["exception"] = self.formatException(record.exc_info)
 
-        # Если переданы дополнительные параметры через extra={...}
-        if hasattr(record, "extra") and isinstance(record.extra, dict):  # type: ignore[attr-defined]
-            log_payload["extra"] = sanitize_data(record.extra)  # type: ignore[attr-defined]
+        # If extra contextual parameters passed via extra={...}
+        extra = getattr(record, "extra", None)
+        if isinstance(extra, dict):
+            log_payload["extra"] = sanitize_data(extra)
 
         return json.dumps(log_payload, ensure_ascii=False)
 
 
 def setup_logging(app_env: str = "development") -> None:
     """
-    Настройка корневого логгера и логгеров серверов Uvicorn / Gunicorn.
+    Configure application root logger and forward Uvicorn / Gunicorn server logs.
     """
     root_logger = logging.getLogger()
     log_level = logging.INFO if app_env != "development" else logging.DEBUG
     root_logger.setLevel(log_level)
 
-    # Очищаем дефолтные обработчики, чтобы избежать дублирования строк в консоли
+    # Clear default handlers to avoid duplicate log lines in console
     for handler in list(root_logger.handlers):
         root_logger.removeHandler(handler)
 
@@ -115,7 +116,7 @@ def setup_logging(app_env: str = "development") -> None:
     stream_handler.setFormatter(StructuredJSONFormatter())
     root_logger.addHandler(stream_handler)
 
-    # Перенаправляем логи веб-серверов Uvicorn и Gunicorn в единый JSON-форматтер
+    # Route web server loggers to unified structured JSON handler
     for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "gunicorn.access", "gunicorn.error"):
         srv_logger = logging.getLogger(logger_name)
         srv_logger.handlers = [stream_handler]

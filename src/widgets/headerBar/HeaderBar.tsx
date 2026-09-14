@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import { cn } from "@/utils/cn";
 import { Button } from "@/shared/ui/baseButton/BaseButton";
 
-// Компонент времени – обновляется каждую секунду, но не триггерит перерисовку всего хедера
+// Time display component – updates every second without triggering re-renders of the whole header
 const TimeDisplay = memo(() => {
   const [now, setNow] = useState(() => new Date());
 
@@ -21,8 +21,7 @@ const TimeDisplay = memo(() => {
 });
 TimeDisplay.displayName = "TimeDisplay";
 
-
-// Общие стили для кнопок "—" и "□"
+// Shared button styles for "—" and "□" window controls
 const MINIMIZE_FULLSCREEN_STYLES = {
   "--btn-bg-hover": "#11111130",
   "--btn-bg-active": "#11111130",
@@ -31,7 +30,7 @@ const MINIMIZE_FULLSCREEN_STYLES = {
 export default function HeaderBar() {
   const [wobble, setWobble] = useState(0);
 
-  // Обработчики с мемоизацией
+  // Memoized handlers
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -44,7 +43,7 @@ export default function HeaderBar() {
     setWobble((w) => w + 1);
   }, []);
 
-  // Конфигурация кнопок – мемоизируется, чтобы не создавать массив при каждом рендере
+  // Button config – memoized to avoid allocating new arrays on each render
   const buttons = useMemo(
     () => [
       {
@@ -53,7 +52,7 @@ export default function HeaderBar() {
         style: MINIMIZE_FULLSCREEN_STYLES,
         onClick: handleScrollToTop,
         className: "px-4",
-        title: "Нажмите чтобы вернуться на вверх"
+        title: "Click to scroll to top"
       },
       {
         key: "fullscreen",
@@ -61,7 +60,7 @@ export default function HeaderBar() {
         style: MINIMIZE_FULLSCREEN_STYLES,
         onClick: handleFullscreen,
         className: "flex justify-center items-center px-4",
-        title: "Нажмите чтобы сделать полноэкран"
+        title: "Click to toggle fullscreen"
       },
       {
         key: "close",
@@ -76,7 +75,7 @@ export default function HeaderBar() {
         } as React.CSSProperties,
         onClick: handleWobble,
         className: "px-4",
-        title: "Нажмите чтобы закрыть :)"
+        title: "Click to close :)"
       },
     ],
     [handleScrollToTop, handleFullscreen, handleWobble]
@@ -85,7 +84,7 @@ export default function HeaderBar() {
   return (
     <header className="sticky top-0 z-40 bg-paper/95 backdrop-blur-[5px] border-b-2 border-ink ">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* key={wobble} заставляет элемент пересоздаваться, перезапуская анимацию */}
+        {/* key={wobble} forces DOM re-mount, restarting CSS keyframe animation */}
         <div
           key={wobble}
           className={cn(

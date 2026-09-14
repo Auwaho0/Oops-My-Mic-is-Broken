@@ -38,16 +38,16 @@ from app.api.deps import get_current_user
 from app.core.redis import get_redis_client
 from app.models.user import User
 
-# Резервный in-memory кэш скользящего окна (используется при недоступности Redis или в локальных тестах)
-# Хранит список таймстемпов последних запросов: { "ключ_клиента": [timestamp1, timestamp2, ...] }
+# Fallback in-memory sliding window cache (used when Redis is unavailable or in local test suites)
+# Stores lists of request timestamps per client: { "client_key": [timestamp1, timestamp2, ...] }
 _in_memory_cache: dict[str, list[float]] = defaultdict(list)
 
 
 def get_client_ip(request: Request) -> str:
     """
-    Извлечение реального IP-адреса клиента.
-    Учитывает заголовок `X-Forwarded-For`, который устанавливает обратный прокси (Nginx).
-    Первый IP в списке — это настоящий адрес клиента, остальные — промежуточные прокси.
+    Extract client real IP address.
+    Checks `X-Forwarded-For` header populated by reverse proxies (Nginx).
+    The first IP in the list represents the client origin; subsequent IPs represent intermediate proxies.
     """
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
@@ -59,38 +59,38 @@ def get_client_ip(request: Request) -> str:
 
 async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
     """
-    Основная функция проверки и фиксации лимита:
-    - `cache_key`: уникальный ключ (например, IP или ID пользователя)
-    - `times`: максимальное разрешенное количество запросов
-    - `seconds`: временное окно (в секундах)
+    Core rate limit validation and tracking function:
+    - `cache_key`: unique identifier key (e.g. IP or user ID)
+    - `times`: maximum permitted requests
+    - `seconds`: sliding time window duration in seconds
     """
     redis = await get_redis_client()
     if redis is not None:
         try:
-            # Атомарный пайплайн в Redis
+            # Atomic Redis pipeline
             pipe = redis.pipeline()
-            pipe.incr(cache_key)  # Увеличиваем счетчик обращений на 1
-            pipe.ttl(cache_key)   # Узнаем оставшееся время жизни ключа
+            pipe.incr(cache_key)  # Increment access counter by 1
+            pipe.ttl(cache_key)   # Query remaining time-to-live
             results = await pipe.execute()
 
             current_count = int(results[0])
             ttl = int(results[1])
 
-            # Если это первый запрос в окне — выставляем время жизни ключа
+            # If this is the initial hit in window, set TTL
             if current_count == 1:
                 await redis.expire(cache_key, seconds)
                 ttl = seconds
             elif ttl == -1:
-                # Защита от бесконечного ключа в случае сбоя
+                # Guard against infinite key lifetime in case of prior failover
                 await redis.expire(cache_key, seconds)
                 ttl = seconds
 
-            # Если лимит превышен — выбрасываем HTTP 429 Too Many Requests
+            # If threshold exceeded, raise HTTP 429 Too Many Requests
             if current_count > times:
                 retry_after = max(1, ttl if ttl > 0 else seconds)
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Слишком много запросов. Попробуйте снова через {retry_after} сек.",
+                    detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
                     headers={
                         "Retry-After": str(retry_after),
                         "X-RateLimit-Limit": str(times),
@@ -99,20 +99,20 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
                 )
             return
         except HTTPException:
-            # Пробрасываем 429 ошибку наверх
+            # Re-raise rate limit 429 error
             raise
         except Exception:
-            # При сбое соединения с Redis мягко переключаемся на проверку в памяти
+            # On Redis connection failure, fall back to process in-memory sliding window
             pass
 
     # --------------------------------------------------------------------------
-    # Fallback: алгоритм скользящего окна в оперативной памяти процесса
+    # Fallback: In-memory sliding window algorithm
     # --------------------------------------------------------------------------
     now = time.time()
     window_start = now - seconds
     timestamps = _in_memory_cache[cache_key]
 
-    # Очищаем таймстемпы, которые вышли за пределы текущего временного окна
+    # Clean expired timestamps outside active window
     valid_timestamps = [t for t in timestamps if t > window_start]
 
     if len(valid_timestamps) >= times:
@@ -121,7 +121,7 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
         _in_memory_cache[cache_key] = valid_timestamps
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Слишком много запросов. Попробуйте снова через {retry_after} сек.",
+            detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
             headers={
                 "Retry-After": str(retry_after),
                 "X-RateLimit-Limit": str(times),
@@ -129,19 +129,19 @@ async def _enforce_limit(cache_key: str, times: int, seconds: int) -> None:
             },
         )
 
-    # Добавляем текущий запрос в историю
+    # Record current timestamp in history
     valid_timestamps.append(now)
     _in_memory_cache[cache_key] = valid_timestamps
 
 
 # --------------------------------------------------------------------------
-# FastAPI зависимости (Dependencies) для использования в роутерах
+# FastAPI Router Dependencies
 # --------------------------------------------------------------------------
 
 async def rate_limit_auth(request: Request) -> None:
     """
-    Защита роутов аутентификации:
-    Максимум 5 попыток в минуту с одного IP-адреса.
+    Rate limit protection for auth routes:
+    Max 5 attempts per minute per IP address.
     """
     ip = get_client_ip(request)
     cache_key = f"callsaver:ratelimit:auth:{ip}"
@@ -152,8 +152,8 @@ async def rate_limit_upload(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
-    Защита загрузки звуков:
-    Максимум 20 файлов в час на одного авторизованного пользователя.
+    Rate limit protection for audio file uploads:
+    Max 20 uploads per hour per authenticated user.
     """
     cache_key = f"callsaver:ratelimit:upload:{current_user.id}"
     await _enforce_limit(cache_key, times=20, seconds=3600)
@@ -163,8 +163,8 @@ async def rate_limit_create_excuse(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
-    Защита создания кастомных отговорок:
-    Максимум 60 отговорок в час на одного пользователя.
+    Rate limit protection for custom excuse generation:
+    Max 60 excuses per hour per authenticated user.
     """
     cache_key = f"callsaver:ratelimit:create_excuse:{current_user.id}"
     await _enforce_limit(cache_key, times=60, seconds=3600)

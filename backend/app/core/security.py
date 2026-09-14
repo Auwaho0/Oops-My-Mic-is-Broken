@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from passlib.context import CryptContext  # type: ignore[import-untyped]
+from passlib.context import CryptContext
 
 from app.core.config import get_settings
 

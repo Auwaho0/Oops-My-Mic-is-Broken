@@ -70,7 +70,7 @@ export function ProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-950 text-neutral-100 flex items-center justify-center font-mono">
-        <div className="text-amber-400 animate-pulse">// ЗАГРУЗКА ДАННЫХ АГЕНТА...</div>
+        <div className="text-amber-400 animate-pulse">// LOADING AGENT PROFILE...</div>
       </div>
     );
   }
@@ -191,7 +191,7 @@ export function ProfilePage() {
           {/* Module Assets Stats */}
           <div className="pt-2">
             <h3 className="text-xs uppercase text-neutral-400 tracking-wider mb-3">
-              // АЛИБИ-АРСЕНАЛ АГЕНТА
+              // AGENT ALIBI ARSENAL
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-4 bg-neutral-950/60 border border-neutral-800 rounded flex items-center gap-3">
@@ -215,7 +215,7 @@ export function ProfilePage() {
           {userSounds.length > 0 && (
             <div className="pt-4 border-t border-neutral-800">
               <h3 className="text-xs uppercase text-neutral-400 tracking-wider mb-3">
-                // ЗАГРУЖЕННЫЕ АУДИОФАЙЛЫ ({userSounds.length})
+                // UPLOADED AUDIO FILES ({userSounds.length})
               </h3>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {userSounds.map((sound) => (

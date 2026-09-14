@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.sound import Sound, SoundCategory
@@ -14,7 +14,7 @@ class SoundRepository:
 
     async def get_by_id(self, sound_id: uuid.UUID) -> Sound | None:
         query = select(Sound).where(
-            and_(Sound.id == sound_id, Sound.deleted_at.is_(None))
+            Sound.id == sound_id, Sound.deleted_at.is_(None)
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
@@ -27,31 +27,31 @@ class SoundRepository:
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Sound], int]:
-        filters = [Sound.deleted_at.is_(None)]
+        base_stmt = select(Sound).where(Sound.deleted_at.is_(None))
 
         if category:
-            filters.append(Sound.category == category.value)
+            base_stmt = base_stmt.where(Sound.category == category.value)
 
         if user_id and include_all_user_sounds:
             # All system sounds + this user's sounds
-            filters.append((Sound.is_system.is_(True)) | (Sound.user_id == user_id))
+            base_stmt = base_stmt.where(
+                or_(Sound.is_system.is_(True), Sound.user_id == user_id)
+            )
         elif user_id:
             # Strictly this user's sounds
-            filters.append(Sound.user_id == user_id)
+            base_stmt = base_stmt.where(Sound.user_id == user_id)
         else:
             # Public/system sounds only
-            filters.append(Sound.is_system.is_(True))
+            base_stmt = base_stmt.where(Sound.is_system.is_(True))
 
         # Total count
-        count_query = select(func.count(Sound.id)).where(and_(*filters))
-        total_result = await self.session.execute(count_query)
-        total = total_result.scalar_one()
+        count_stmt = select(func.count()).select_from(base_stmt.subquery())
+        total_result = await self.session.execute(count_stmt)
+        total = int(total_result.scalar_one() or 0)
 
         # Data query
         data_query = (
-            select(Sound)
-            .where(and_(*filters))
-            .order_by(Sound.created_at.desc())
+            base_stmt.order_by(Sound.created_at.desc())
             .offset(offset)
             .limit(limit)
         )

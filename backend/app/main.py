@@ -45,10 +45,10 @@ from app.core.seeds import seed_system_excuses
 from app.schemas.errors import ProblemDetail
 from app.schemas.health import HealthResponse, ReadyResponse
 
-# Загружаем настройки из переменных окружения (.env)
+# Load application configuration from environment variables (.env)
 settings = get_settings()
 
-# Инициализируем структурированное JSON-логирование
+# Initialize structured JSON logging
 setup_logging(settings.APP_ENV)
 logger = logging.getLogger("callsaver.app")
 
@@ -56,11 +56,11 @@ logger = logging.getLogger("callsaver.app")
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    Управление жизненным циклом (Startup & Shutdown) приложения.
+    Manage application lifecycle (Startup & Shutdown).
     """
     logger.info("Application starting up in %s mode", settings.APP_ENV)
 
-    # 1. При запуске: проверяем подключение к БД и сидируем базовые отговорки
+    # 1. On startup: check database connection and seed default system excuses
     try:
         async with AsyncSessionLocal() as session:
             await seed_system_excuses(session)
@@ -68,30 +68,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("Could not seed system excuses on startup: %s", exc)
 
-    yield  # В этот момент приложение активно и обрабатывает запросы пользователей
+    yield  # Application is active and processing client requests
 
-    # 2. При завершении: корректно закрываем соединения с Redis
+    # 2. On shutdown: cleanly close connections to Redis
     logger.info("Application shutting down...")
     await close_redis_client()
 
 
-# Создание экземпляра приложения FastAPI
+# Create FastAPI application instance
 app = FastAPI(
     title=settings.APP_NAME,
     description="Playful but production-grade PWA for escaping online calls.",
     version="0.1.0",
     lifespan=lifespan,
-    docs_url="/docs",            # Интерактивная документация Swagger UI
-    redoc_url="/redoc",          # Альтернативная документация ReDoc
-    openapi_url="/openapi.json", # OpenAPI спецификация схемы API
+    docs_url="/docs",            # Interactive Swagger UI documentation
+    redoc_url="/redoc",          # Alternative ReDoc documentation
+    openapi_url="/openapi.json", # OpenAPI schema specification
 )
 
-# Настройка CORS (Cross-Origin Resource Sharing)
-# Позволяет фронтенду (например, http://localhost:3000) безопасно обмениваться cookies с бэкендом
+# Configure CORS (Cross-Origin Resource Sharing)
+# Allows frontend (e.g. http://localhost:3000) to securely exchange cookies with the backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,     # Разрешаем отправку httpOnly cookies
+    allow_credentials=True,     # Allow transmitting httpOnly cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -102,13 +102,13 @@ async def request_logging_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
     """
-    Middleware сквозного логирования и трассировки запросов:
-    - Извлекает или генерирует уникальный UUID `X-Request-ID`.
-    - Сохраняет его в `ContextVar`, чтобы все последующие логи автоматически содержали этот ID.
-    - Измеряет точное время выполнения запроса в миллисекундах.
-    - Добавляет `X-Request-ID` в заголовки ответа клиенту.
+    Middleware for end-to-end request tracing and structured logging:
+    - Extracts or generates a unique UUID `X-Request-ID`.
+    - Stores it in `ContextVar` so all subsequent logs automatically contain this ID.
+    - Measures precise request execution duration in milliseconds.
+    - Attaches `X-Request-ID` to response headers back to the client.
     """
-    # 1. Получаем ID запроса от Nginx/клиента или создаем новый случайный UUID4
+    # 1. Retrieve request ID from Nginx/client header or generate new random UUID4
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     request.state.request_id = request_id
     token = request_id_ctx.set(request_id)
@@ -117,16 +117,16 @@ async def request_logging_middleware(
     start_time = time.perf_counter()
 
     try:
-        # Передаем запрос дальше по цепочке в роутер
+        # Pass request downstream to router
         response: Response = await call_next(request)
 
-        # Считаем длительность обработки
+        # Calculate processing duration
         duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        # Возвращаем Request ID в заголовках ответа браузеру
+        # Return Request ID in response headers to browser
         response.headers["X-Request-ID"] = request_id
 
-        # Логируем запрос (пропуская частые проверки healthcheck, чтобы не засорять логи)
+        # Log request (skipping frequent healthcheck pings to prevent log clutter)
         if request.url.path not in ("/health", "/ready"):
             logger.info(
                 "%s %s %s (%s ms)",
@@ -146,18 +146,18 @@ async def request_logging_middleware(
             )
         return response
     finally:
-        # Очищаем контекст после завершения запроса
+        # Clean up context after request completion
         request_id_ctx.reset(token)
 
 
 # --------------------------------------------------------------------------
-# RFC 7807 Обработчики ошибок (Problem Details for HTTP APIs)
+# RFC 7807 Error Handlers (Problem Details for HTTP APIs)
 # --------------------------------------------------------------------------
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """
-    Преобразует стандартные HTTPException (400, 401, 403, 404, 429) в RFC 7807 формат
+    Transforms standard HTTPException (400, 401, 403, 404, 429) into RFC 7807 format
     """
     problem = ProblemDetail(
         type=f"https://errors.callsaver.local/{exc.status_code}",
@@ -178,8 +178,8 @@ async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """
-    Преобразует ошибки валидации Pydantic (HTTP 422 Unprocessable Entity)
-    с детальной информацией о некорректных полях
+    Transforms Pydantic validation errors (HTTP 422 Unprocessable Entity)
+    with detailed field-level error information
     """
     problem = ProblemDetail(
         type="https://errors.callsaver.local/validation-error",
@@ -204,21 +204,21 @@ async def validation_exception_handler(
 
 
 # --------------------------------------------------------------------------
-# Системные эндпоинты проверки жизнеспособности (Liveness & Readiness)
-# Используются Kubernetes, Docker и балансировщиками нагрузки
+# System Health Endpoints (Liveness & Readiness)
+# Used by Kubernetes, Docker, and Load Balancers
 # --------------------------------------------------------------------------
 
 @app.get("/health", response_model=HealthResponse, tags=["health"], summary="Liveness Probe")
 async def root_liveness() -> HealthResponse:
-    """Проверка того, что процесс приложения жив и отвечает на запросы"""
+    """Verify that the application process is running and responding to requests"""
     return HealthResponse(app=settings.APP_NAME)
 
 
 @app.get("/ready", response_model=ReadyResponse, tags=["health"], summary="Readiness Probe")
 async def root_readiness() -> ReadyResponse:
-    """Проверка готовности сервиса принимать рабочий пользовательский трафик"""
+    """Verify that the service is fully ready to handle incoming user traffic"""
     return ReadyResponse()
 
 
-# Подключение версионированных роутеров API v1 (/api/v1/auth, /api/v1/excuses, /api/v1/sounds)
+# Mount versioned API v1 routers (/api/v1/auth, /api/v1/excuses, /api/v1/sounds)
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

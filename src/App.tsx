@@ -14,7 +14,7 @@ import { Toaster } from "sonner";
 export default function App() {
   return (
     <div className="relative min-h-screen text-ink">
-      {/* мятая бумага */}
+      {/* Crumpled paper texture background overlay */}
       <div
         className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center"
         style={{ backgroundImage: `url(${paper})` }}

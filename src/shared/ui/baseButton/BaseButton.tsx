@@ -1,13 +1,13 @@
 /**
  * shared/ui/baseButton/BaseButton.tsx
  * 
- * Универсальный компонент кнопки в газетно-бруталистском стиле.
+ * Reusable tactile button component styled with newspaper-brutalist aesthetics.
  * 
- * Ключевые концепции для изучения React:
- * 1. `forwardRef` — позволяет родительскому компоненту получить прямую ссылку (ref) на нативный HTML-элемент <button>.
- * 2. `useCallback` — мемоизирует функции обработчиков событий, чтобы они не создавались заново при каждом рендере.
- * 3. `useMemo` — оптимизирует вычисление классов Tailwind и пересчитывает их только при изменении входных пропсов.
- * 4. `cn(...)` — утилита объединения классов (clsx + tailwind-merge) для корректного разрешения конфликтов Tailwind.
+ * Key educational React concepts:
+ * 1. `forwardRef` - Allows parent components to receive a direct ref to the underlying HTML <button>.
+ * 2. `useCallback` - Memoizes mouse/touch event handlers so they are not recreated on each render.
+ * 3. `useMemo` - Optimizes computed class strings, recalculating only when dependencies change.
+ * 4. `cn(...)` - Class merging utility (clsx + tailwind-merge) for clean Tailwind precedence resolution.
  */
 
 import {
@@ -22,25 +22,25 @@ import {
 } from 'react';
 import { cn } from '@/utils/cn';
 
-// Допустимые размеры кнопки
+// Supported button sizes
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface BaseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Размер кнопки: sm (мелкий), md (стандартный), lg (крупный) */
+  /** Size variant: sm (compact), md (standard), lg (large/prominent) */
   size?: ButtonSize;
-  /** Дочерние элементы (текст, иконки) */
+  /** Inner content (text, icons) */
   children: ReactNode;
 }
 
-// Варианты стилей в зависимости от размера
+// Size class variations
 const sizeVariants: Record<ButtonSize, string> = {
   sm: 'text-xs px-2.5 py-1',
   md: 'text-sm px-4 py-2',
   lg: 'text-base px-6 py-3',
 };
 
-// Базовые Tailwind-классы для газетного стиля:
-// Класс .btn-base описан глобально в src/index.css
+// Base brutalist classes:
+// The .btn-base class is defined globally in src/index.css
 const baseStyles =
   'btn-base inline-flex items-center justify-center font-bold tracking-tight cursor-pointer select-none transition-all disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -60,10 +60,10 @@ export const Button = forwardRef<HTMLButtonElement, BaseButtonProps>(
     },
     ref
   ) => {
-    // Состояние активного нажатия (для имитации физического вдавливания кнопки)
+    // Pressed state for tactile 3D button press physics
     const [isActive, setIsActive] = useState(false);
 
-    // --- Обработчики нажатий мыши ---
+    // --- Mouse Event Handlers ---
     const handleMouseDown = useCallback(
       (e: MouseEvent<HTMLButtonElement>) => {
         setIsActive(true);
@@ -88,7 +88,7 @@ export const Button = forwardRef<HTMLButtonElement, BaseButtonProps>(
       [onMouseLeave]
     );
 
-    // --- Обработчики касаний на мобильных устройствах (Touch Events) ---
+    // --- Mobile Touch Event Handlers ---
     const handleTouchStart = useCallback(
       (e: TouchEvent<HTMLButtonElement>) => {
         setIsActive(true);
@@ -113,7 +113,7 @@ export const Button = forwardRef<HTMLButtonElement, BaseButtonProps>(
       [onTouchCancel]
     );
 
-    // Мемоизация итоговой строки классов
+    // Memoize final class concatenation
     const classes = useMemo(
       () => cn(baseStyles, sizeVariants[size], isActive && 'btn-base--active', className),
       [size, isActive, className]

@@ -23,7 +23,7 @@ export default function Generator() {
   const { data: user } = useCurrentUser();
   const openAuthModal = useAuthUIStore((state) => state.openAuthModal);
 
-  /* печатная машинка */
+  /* Typewriter character reveal effect */
   useEffect(() => {
     if (!full) return;
     setShown("");
@@ -121,7 +121,7 @@ export default function Generator() {
           </p>
         </Reveal>
 
-        {/* фильтры */}
+        {/* Category filters */}
         <Reveal delay={60}>
           <div className="mt-8 flex flex-wrap gap-2.5">
             {CATEGORIES.map((c) => (
@@ -150,7 +150,7 @@ export default function Generator() {
           </div>
         </Reveal>
 
-        {/* вывод */}
+        {/* Generated excuse preview block */}
         <Reveal delay={120}>
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_auto]">
             <div className="relative border-[3px] border-paper/80 bg-ink p-6 sm:p-8 min-h-[10rem]">

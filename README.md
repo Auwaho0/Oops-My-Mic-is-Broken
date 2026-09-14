@@ -1,135 +1,153 @@
 # CallSaver («Ой, у меня микрофон сломался»)
 
-> **CallSaver** — шутливый по задумке, но спроектированный по бескомпромиссным промышленным стандартам сервис (PWA), помогающий вежливо, технично или абсурдно «эвакуироваться» с затянувшихся онлайн-созвонов и митингов.
-> Включает умный генератор алиби и отговорок, звуковую деку правдоподобных фоновых шумов (Web Audio API), загрузку кастомных аудиофайлов в S3/MinIO, систему аккаунтов (JWT в httpOnly cookie), Rate Limiting, PWA-офлайн режим и полный продакшн-контур.
+> **EN:** Playful in concept, uncompromising in engineering. A production-grade Progressive Web App (PWA) designed to help users politely, technically, or absurdly "escape" from unwanted online calls and meetings.  
+> **RU:** Шутливый по задумке, но спроектированный по бескомпромиссным промышленным стандартам сервис (PWA), помогающий вежливо, технично или абсурдно «эвакуироваться» с затянувшихся онлайн-созвонов и рабочих митингов.
 
 ---
 
-## 🏗 Архитектура и стек технологий
+## 💡 О проекте / About this Project (Vibecoding & Educational Reference)
 
-Проект разделен на слабосвязанные слои по принципам Clean Architecture и Feature-Sliced Design (FSD):
+### 🇷🇺 Для изучающих веб-разработку (На русском)
+**CallSaver** — это эталонный **вайбкод-проект для практического обучения (vibecoding learning project)**.
+- **В чем суть концепта «Вайбкодинг»?** Проект родился из живой, весёлой идеи («хочу кнопку, которая шумит дрелью в микрофон или выдает отговорку, почему мне нужно срочно уйти с созвона»), но реализован с соблюдением стандартов взрослой энтерпрайз-разработки.
+- **Для кого этот проект?** Если вы новичок или разработчик среднего уровня, который уже немного разбирается в **React** и **Python**, но хочет увидеть, как устроен **настоящий Full-Stack продакшн**:
+  - как правильно разделять состояние (серверное в *TanStack Query*, клиентское в *Zustand*);
+  - как генерировать звук процедурно через *Web Audio API* без подгрузки тяжёлых MP3;
+  - как строить чистую архитектуру на *FastAPI* с роутерами, сервисами, репозиториями и SQLAlchemy 2.0;
+  - как безопасно хранить JWT в *httpOnly cookies*, защищаться от флуда (*Rate Limiting*) и настраивать *Nginx + Docker*.
+- **Код как учебник:** Весь исходный код снабжен понятными англоязычными комментариями, объясняющими не только *что* делает строчка, но и *почему* выбран именно такой архитектурный паттерн.
 
-### Фронтенд (Frontend SPA + PWA)
-- **Фреймворк и сборка:** React 19, Vite, TypeScript (strict mode).
-- **Стилизация:** Tailwind CSS 4, `clsx`, `tailwind-merge`, `lucide-react` иконки, газета/брутализм дизайн-система.
-- **Управление состоянием:**
-  - **TanStack Query v5:** *только* серверное состояние (кэширование, инвалидация мутаций, оптимистичные обновления).
-  - **Zustand:** *только* клиентские UI-предпочтения (уровень неловкости, активные таймеры, состояние модалок). Данные сервера никогда не дублируются в Zustand.
-- **Сетевой уровень:** Axios с перехватчиками для авто-прикрепления Bearer-токена, обработки RFC 7807 ошибок (`application/problem+json`) и прозрачного обновления токенов через `/api/v1/auth/refresh`.
-- **Формы и валидация:** React Hook Form + Zod схемы.
-- **Звуковой движок:** Web Audio API (`AudioContext`, `GainNode`, `BiquadFilterNode`, кастомные генераторы шума Pink/Brownian/Bandpass). Уровень неловкости меняет громкость мгновенно на аппаратном уровне звуковой карты без перерендера компонентов React.
-- **PWA и Офлайн:** `vite-plugin-pwa`, Service Worker с кэшированием статики, Web App Manifest на русском языке, автономный режим с детектором сети и кнопкой установки в один клик.
-- **Тестирование:** Vitest + React Testing Library (20+ тестов компонентов и звукового движка).
-
-### Бэкенд (Backend API)
-- **Фреймворк:** FastAPI (асинхронный), Python 3.10+.
-- **Сервер выполнения:** Gunicorn с воркерами Uvicorn (`uvicorn.workers.UvicornWorker`) в продакшене.
-- **База данных и ORM:** PostgreSQL 16, SQLAlchemy 2.0 Async (`asyncpg`), Alembic миграции.
-- **Хранилище объектов:** S3-совместимое хранилище (MinIO локально / AWS S3 в проде) с потоковой валидацией MIME и заголовков аудиофайлов до 5 МБ и генерацией presigned URLs.
-- **Кэш и Rate Limiting:** Redis 7 (с автоматическим in-memory fallback при недоступности брокера). Лимиты: Auth 5/мин по IP, Upload 20/час на пользователя, Отговорки 60/час на пользователя.
-- **Безопасность:** Хеширование паролей bcrypt, короткоживущие JWT Access токены + долгоживущие Refresh токены в защищенных `httpOnly`, `SameSite=Lax` cookie.
-- **Логирование:** Структурированный JSON-формат с корреляцией через сквозной `X-Request-ID` и маскированием секретов.
-
-### Инфраструктура
-- **Оркестрация:** Docker Compose (6 микросервисов: `frontend`, `backend`, `postgres`, `redis`, `minio`, `nginx`).
-- **Обратный прокси:** Nginx 1.25 с edge-rate-limiting, сжатием Gzip, оптимизацией кэширования статических хэшированных файлов и PWA Service Worker.
+### 🇬🇧 For Learners & Developers (In English)
+**CallSaver** is a showcase **vibecoding & educational reference project** created for real-world study.
+- **What is "Vibecoding"?** Taking a fun, creative, and meme-worthy everyday idea ("I need a button to realistically simulate a jackhammer or baby crying to hang up on an awkward Zoom call") and engineering it with zero compromises, using industry-standard architectures.
+- **Who is this for?** Perfect for developers with basic familiarity in React and Python who want to examine a production-grade full-stack architecture:
+  - Strict separation of concerns (Clean Architecture / Feature-Sliced Design);
+  - Hardware-accelerated audio synthesis via browser Web Audio API;
+  - Asynchronous FastAPI backend with SQLAlchemy 2.0, Alembic, and Redis rate limiting;
+  - Secure authentication with short-lived access tokens and httpOnly refresh cookies;
+  - Enterprise container orchestration with Docker Compose and Nginx reverse proxy.
 
 ---
 
-## 🚀 Как запустить проект (Пошаговое руководство)
+## 📦 Нужно ли скачивать библиотеки? (Docker vs Ручная установка) / Do I need to install libraries?
 
-### Способ 1. Полный запуск в Docker Compose (Рекомендуемый для продакшена)
+Частый вопрос новичков: **«Какие библиотеки мне нужно скачивать вручную, или они скачаются сами с Docker?»**
 
-Это самый простой и надежный способ поднять абсолютно все 6 сервисов одной командой.
-
-#### 1. Подготовка конфигурации
-В корне проекта создайте файл `.env` на основе `.env.example`:
-```bash
-cp .env.example .env
-```
-*(Для локального тестирования все дефолтные порты и пароли уже согласованы).*
-
-#### 2. Запуск контейнеров
-Выполните команду сборки и старта:
-```bash
-docker compose up --build -d
-```
-
-#### 3. Проверка статуса сервисов
-```bash
-docker compose ps
-```
-Все контейнеры (`callsaver-frontend`, `callsaver-backend`, `callsaver-postgres`, `callsaver-redis`, `callsaver-minio`, `callsaver-nginx`) перейдут в статус `running` (или `healthy`).
-
-#### 4. Доступ к приложению:
-- **Веб-приложение (через Nginx):** [http://localhost](http://localhost)
-- **Frontend напрямую:** [http://localhost:3000](http://localhost:3000)
-- **Интерактивная документация Swagger/OpenAPI:** [http://localhost/docs](http://localhost/docs) или [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Проверка работоспособности (Healthcheck):** `GET http://localhost/health`
-- **Консоль хранилища MinIO:** [http://localhost:9001](http://localhost:9001)  
-  *(Логин: `minioadmin`, Пароль: `minioadmin`)*
-- **PostgreSQL порт:** `localhost:5432` *(база: `callsaver`, логин: `callsaver`, пароль: `callsaver`)*
-- **Redis порт:** `localhost:6379`
-
-#### 5. Остановка проекта:
-```bash
-docker compose down
-```
-*(Чтобы удалить данные базы данных и хранилища, добавьте флаг `-v`: `docker compose down -v`).*
+### Вариант 1: Запуск через Docker (Ничего скачивать вручную НЕ нужно! ⭐️)
+Если у вас установлен **Docker** и **Docker Compose**:
+- **Вам НЕ нужно** устанавливать Python, Node.js, PostgreSQL или Redis на свой компьютер.
+- **Вам НЕ нужно** писать `npm install` или `pip install`.
+- Docker автоматически прочитает файлы:
+  - `package.json` — и сам скачает все фронтенд-библиотеки внутри контейнера `callsaver-frontend`;
+  - `backend/requirements.txt` — и сам установит все бэкенд-зависимости внутри контейнера `callsaver-backend`.
+- **Все 6 сервисов запустятся одной-единственной командой:**
+  ```bash
+  docker compose up --build -d
+  ```
 
 ---
 
-### Способ 2. Локальная разработка (Hybrid / Dev Mode)
+### Вариант 2: Запуск без Docker (Ручная установка библиотек для экспериментов)
+Если вы хотите запускать код напрямую на своём компьютере, чтобы быстро менять файлы в редакторе:
 
-Если вы хотите вносить изменения в код с мгновенной перезагрузкой (Hot Reload):
-
-#### Шаг 1. Запуск вспомогательных сервисов (БД, Redis, MinIO)
-Запустите только инфраструктурные контейнеры:
+#### 1. Фронтенд библиотеки (Node.js & npm):
+Установите **Node.js (версии 18 или 20+)**. Затем в корне проекта выполните:
 ```bash
-docker compose up -d postgres redis minio
+npm install
 ```
+Менеджер `npm` автоматически скачает из `package.json` следующие ключевые библиотеки:
+- `react`, `react-dom` (v19) — основа интерфейса;
+- `vite` — ультрабыстрый сборщик и dev-сервер;
+- `typescript` — строгая типизация;
+- `@tanstack/react-query` — управление серверными запросами и кэшем;
+- `zustand` — легковесное локальное состояние UI;
+- `tailwindcss` — современная стилизация утилитарными классами;
+- `axios` — HTTP-клиент с интерцепторами;
+- `react-hook-form` + `zod` — формы и валидация;
+- `lucide-react` — векторные иконки;
+- `sonner` — всплывающие toast-уведомления;
+- `vite-plugin-pwa` — офлайн-режим и PWA Service Worker.
 
-#### Шаг 2. Запуск Бэкенда (FastAPI)
-1. Перейдите в директорию `backend`:
+#### 2. Бэкенд библиотеки (Python & pip):
+Установите **Python (версии 3.10, 3.11 или 3.12)**. Перейдите в папку `backend` и установите зависимости:
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate  # На Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+Установщик `pip` автоматически скачает:
+- `fastapi` — современный асинхронный веб-фреймворк;
+- `uvicorn`, `gunicorn` — высокопроизводительные ASGI-серверы;
+- `sqlalchemy` (v2.0 async) + `asyncpg` — асинхронная ORM и драйвер PostgreSQL;
+- `alembic` — миграции базы данных;
+- `pydantic`, `pydantic-settings` — валидация данных и чтение `.env`;
+- `pyjwt` + `passlib[bcrypt]` — генерация JWT токенов и хеширование паролей;
+- `redis` — асинхронный клиент для кэша и защиты от флуда (Rate Limiter);
+- `boto3` — клиент для работы с S3/MinIO хранилищем файлов;
+- `pytest`, `httpx` — автотесты API.
+
+---
+
+## 🚀 Пошаговое руководство по запуску / How to Run
+
+### 🛠 Способ 1. Запуск за 1 минуту через Docker (Рекомендуется)
+
+1. **Скопируйте файл конфигурации окружения:**
+   ```bash
+   cp .env.example .env
+   ```
+   *(Файл `.env.example` уже содержит готовые настройки по умолчанию для локального запуска).*
+
+2. **Соберите и запустите все 6 контейнеров:**
+   ```bash
+   docker compose up --build -d
+   ```
+
+3. **Проверьте статус сервисов:**
+   ```bash
+   docker compose ps
+   ```
+   Все сервисы (`callsaver-frontend`, `callsaver-backend`, `callsaver-postgres`, `callsaver-redis`, `callsaver-minio`, `callsaver-nginx`) должны быть в состоянии `Up` или `healthy`.
+
+4. **Откройте приложение в браузере:**
+   - 🌐 **Основной сайт (через Nginx):** [http://localhost](http://localhost)
+   - 💻 **Frontend напрямую:** [http://localhost:3000](http://localhost:3000)
+   - 📖 **Интерактивная документация Swagger API:** [http://localhost/docs](http://localhost/docs) (или [http://localhost:8000/docs](http://localhost:8000/docs))
+   - 🗄 **MinIO хранилище (файлы звуков):** [http://localhost:9001](http://localhost:9001) *(логин: `minioadmin`, пароль: `minioadmin`)*
+   - ❤️ **Healthcheck API:** `GET http://localhost/health`
+
+5. **Остановка проекта:**
+   ```bash
+   docker compose down
+   ```
+
+---
+
+### 💻 Способ 2. Гибридный запуск для локальной разработки (Dev Mode)
+
+Если вы хотите вносить изменения в код бэкенда или фронтенда и сразу видеть результат:
+
+1. **Запустите только базы данных в фоне через Docker:**
+   ```bash
+   docker compose up -d postgres redis minio
+   ```
+
+2. **Запустите FastAPI сервер бэкенда:**
    ```bash
    cd backend
-   ```
-2. Создайте и активируйте виртуальное окружение Python:
-   ```bash
    python3 -m venv .venv
-   source .venv/bin/activate  # На Windows: .venv\Scripts\activate
-   ```
-3. Установите зависимости:
-   ```bash
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
    pip install -r requirements.txt
-   ```
-4. Запустите бэкенд в режиме разработки:
-   ```bash
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
-5. Запуск тестов бэкенда:
-   ```bash
-   pytest -v
-   ```
 
-#### Шаг 3. Запуск Фронтенда (Vite + React)
-1. В новом терминале перейдите в корень репозитория:
+3. **В отдельном терминале запустите React фронтенд:**
    ```bash
    npm install
-   ```
-2. Запустите dev-сервер фронтенда:
-   ```bash
    npm run dev
    ```
-   Фронтенд откроется по адресу [http://localhost:3000](http://localhost:3000). Все запросы к `/api/*` автоматически проксируются на бэкенд.
-3. Проверка типов и линтинг:
-   ```bash
-   npm run lint
-   ```
-4. Запуск тестов Vitest:
-   ```bash
-   npm test
-   ```
+   Откройте [http://localhost:3000](http://localhost:3000). Благодаря настроенному Vite proxy все вызовы `/api/*` будут автоматически отправляться на ваш бэкенд на порту 8000.
 
 ---
 

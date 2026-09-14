@@ -130,7 +130,7 @@ export function SoundUploadModal({
 
         <div className="border-b border-ink/20 pb-3">
           <p className="font-mono text-xs text-blood tracking-widest uppercase">
-            // МОДУЛЬ ЗАГРУЗКИ — S3/MINIO
+            // UPLOAD MODULE — S3/MINIO
           </p>
           <h3 className="mt-1 font-display text-2xl font-bold uppercase">
             {ru.soundboard.uploadModal.title}

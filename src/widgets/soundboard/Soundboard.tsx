@@ -1,16 +1,16 @@
 /**
  * widgets/soundboard/Soundboard.tsx
  * 
- * Звуковая дека фоновых шумов (Web Audio API Soundboard).
+ * Background noise soundboard (Web Audio API Soundboard).
  * 
- * Ключевые концепции для изучения React и Frontend-архитектуры:
- * 1. TanStack Query (`useSounds`) — реактивное получение списка пользовательских звуков с сервера.
- * 2. `useMemo` для объединения данных — комбинирует статические процедурные звуки (дрель, собака, звонок)
- *    с динамическими звуками пользователя, загруженными в MinIO/S3.
- * 3. Автоотключение звука по таймеру (`useEffect` + `setInterval`) — каждый звук играет фиксированное
- *    время (например, 10 секунд), после чего кнопка автоматически выключается.
- * 4. Очистка ресурсов (`cleanup function` в `useEffect`) — при уходе со страницы или размонтировании
- *    компонента все аудио-осцилляторы корректно глушатся, предотвращая зависшие звуки.
+ * Key architectural concepts for learning React and Frontend engineering:
+ * 1. TanStack Query (`useSounds`) - Reactive fetching of user-uploaded sounds from the API.
+ * 2. `useMemo` for combining data sets - Merges static procedural synthesized sounds (drill, dog, doorbell)
+ *    with dynamic user sounds stored in MinIO/S3.
+ * 3. Auto-disabling countdown timer (`useEffect` + `setInterval`) - Each sound plays for a predetermined
+ *    duration (e.g. 10s), then automatically shuts down and toggles off the button.
+ * 4. Resource cleanup (`cleanup function` in `useEffect`) - Navigating away or unmounting cleanly silences
+ *    all audio oscillators and nodes to avoid audio leaks.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -29,27 +29,27 @@ import { ru } from "@/shared/i18n/ru";
 import { GROUPS as STATIC_GROUPS } from "./data/data";
 
 export default function Soundboard() {
-  // Состояние активных воспроизводимых звуков: словарь { [soundId]: { remainingSec, durationSec } }
+  // Active playing sounds state: dictionary { [soundId]: { remainingSec, durationSec } }
   const [active, setActive] = useState<Record<string, { remainingSec: number; durationSec: number }>>({});
   
-  // Состояние открытия модального окна загрузки собственного звука
+  // Custom sound upload modal visibility state
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   
-  // Категория, в которую пользователь хочет загрузить файл (по умолчанию 'other')
+  // Category target for new sound uploads (defaults to 'other')
   const [targetCategory, setTargetCategory] = useState<SoundCategory>("other");
 
-  // Хуки аутентификации и сервера
+  // Auth & API queries
   const { data: user } = useCurrentUser();
   const openAuthModal = useAuthUIStore((s) => s.openAuthModal);
   const { data: userSoundsData, isLoading: isSoundsLoading } = useSounds();
   const deleteSoundMutation = useDeleteSound();
 
-  // Объединяем статические синтезируемые звуки и пользовательские звуки из API
+  // Combine static synthesized sounds and user custom sounds from the API
   const combinedGroups: Group[] = useMemo(() => {
     const customSounds = userSoundsData?.items || [];
 
     return STATIC_GROUPS.map((g) => {
-      // Фильтруем звуки пользователя по текущей категории
+      // Filter user sounds belonging to this category
       const categoryCustoms = customSounds.filter((cs) => cs.category === g.id);
       const customItems: SoundItem[] = categoryCustoms.map((cs) => ({
         id: cs.id,
@@ -68,7 +68,7 @@ export default function Soundboard() {
     });
   }, [userSoundsData?.items]);
 
-  // Быстрый поиск длительности звука по его ID (O(1) через Map)
+  // Fast O(1) lookup map for sound durations and file URLs
   const soundDurations = useMemo(() => {
     const map = new Map<SoundId, { duration: number; fileUrl?: string }>();
     for (const g of combinedGroups) {
@@ -82,17 +82,17 @@ export default function Soundboard() {
     return map;
   }, [combinedGroups]);
 
-  // Переключение воспроизведения конкретного звука (ВКЛ / ВЫКЛ)
+  // Toggle playback for a specific sound item (ON / OFF)
   const toggle = useCallback(
     (id: SoundId, fileUrl?: string) => {
       setActive((prev) => {
         const next = { ...prev };
         if (next[id]) {
-          // Если звук уже играет — останавливаем его
+          // If already playing, stop it immediately
           delete next[id];
           engine.stop(id);
         } else {
-          // Если звук не играет — запускаем в Web Audio API и ставим таймер
+          // If stopped, start playback via Web Audio API and initialize countdown
           const info = soundDurations.get(id);
           const dur = info?.duration ?? 10;
           const soundUrl = fileUrl || info?.fileUrl;
@@ -105,13 +105,13 @@ export default function Soundboard() {
     [soundDurations]
   );
 
-  // Мгновенная остановка всех играющих звуков (кнопка паники)
+  // Panic button: immediately silences all active sound generators
   const stopAll = useCallback(() => {
     engine.stopAll();
     setActive({});
   }, []);
 
-  // Открытие диалога загрузки своего звука (с проверкой авторизации)
+  // Open upload modal with target category (requires authentication)
   const handleOpenUpload = useCallback(
     (category: SoundCategory) => {
       if (!user) {
@@ -124,7 +124,7 @@ export default function Soundboard() {
     [user, openAuthModal]
   );
 
-  // Удаление авторского звука
+  // Remove custom uploaded sound
   const handleDeleteSound = useCallback(
     async (soundId: string) => {
       if (!window.confirm(ru.soundboard.uploadModal.deleteConfirm)) return;
@@ -146,10 +146,10 @@ export default function Soundboard() {
     [active, deleteSoundMutation]
   );
 
-  // Флаг наличия хотя бы одного играющего звука
+  // Boolean flag indicating if any sound is currently active
   const hasActiveSounds = Object.keys(active).length > 0;
 
-  // Таймер обратного отсчета: срабатывает раз в 1 секунду только если есть активные звуки
+  // Countdown timer tick: runs once every 1s only when sounds are playing
   useEffect(() => {
     if (!hasActiveSounds) return;
 
@@ -160,11 +160,11 @@ export default function Soundboard() {
 
         for (const [id, info] of Object.entries(prev)) {
           if (info.remainingSec <= 1) {
-            // Время истекло: останавливаем звук и удаляем из активных (автоотключение)
+            // Duration expired: stop sound and remove from active list (auto-disable)
             engine.stop(id);
             changed = true;
           } else {
-            // Уменьшаем секунды
+            // Decrement remaining seconds
             next[id] = { ...info, remainingSec: info.remainingSec - 1 };
             changed = true;
           }
@@ -174,11 +174,11 @@ export default function Soundboard() {
       });
     }, 1000);
 
-    // Очистка интервала при изменении активности
+    // Clean up interval on dependency change or unmount
     return () => clearInterval(interval);
   }, [hasActiveSounds]);
 
-  // Глушим звуки при размонтировании всего компонента
+  // Silence all active sounds on component unmount
   useEffect(() => {
     return () => {
       engine.stopAll();
@@ -191,7 +191,7 @@ export default function Soundboard() {
     <section id="sounds" className="bg-paper border-t-2 border-ink">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-16">
         <Reveal>
-          {/* Верхняя панель модуля: бейдж и подсказка про таймер */}
+          {/* Module Header: badge and auto-disable notice */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-blood font-medium tracking-widest font-mono">
               {ru.soundboard.moduleBadge}
@@ -202,13 +202,13 @@ export default function Soundboard() {
             </div>
           </div>
 
-          {/* Заголовок секции и кнопки действий */}
+          {/* Section title and action buttons */}
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-display font-bold uppercase leading-[0.9] text-[clamp(2.4rem,7vw,5.5rem)]">
               {ru.soundboard.heading} <span className="text-blood">{ru.soundboard.headingAccent}</span>
             </h2>
             <div className="flex flex-wrap items-center gap-3">
-              {/* Кнопка загрузки своего звука */}
+              {/* Custom sound upload trigger button */}
               <button
                 type="button"
                 onClick={() => handleOpenUpload("other")}
@@ -218,7 +218,7 @@ export default function Soundboard() {
                 <span>{ru.soundboard.uploadButton}</span>
               </button>
 
-              {/* Кнопка паники: выключить все звуки сразу */}
+              {/* Panic button: kill all active sounds */}
               {activeCount > 0 && (
                 <button
                   type="button"
@@ -236,12 +236,12 @@ export default function Soundboard() {
           </p>
         </Reveal>
 
-        {/* Слайдер «Уровень неловкости» */}
+        {/* Awkwardness Level Volume Slider */}
         <Reveal delay={80}>
           <VolumeControl />
         </Reveal>
 
-        {/* Категории звуков с кнопками */}
+        {/* Sound categories grid */}
         <div className="mt-12 space-y-12">
           {combinedGroups.map((g, gi) => (
             <Reveal key={g.title} delay={gi * 60}>
@@ -258,7 +258,7 @@ export default function Soundboard() {
         </div>
       </div>
 
-      {/* Модальное окно загрузки звука */}
+      {/* Sound upload modal */}
       <SoundUploadModal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}

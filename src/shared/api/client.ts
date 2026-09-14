@@ -1,30 +1,29 @@
 /**
  * ============================================================================
- * shared/api/client.ts — HTTP-клиент Axios с JWT-авторизацией и авто-обновлением
+ * shared/api/client.ts — Axios HTTP Client with JWT Auth & Automatic Token Refresh
  * ============================================================================
  * 
- * Учебное пособие для новичков по безопасности веб-приложений (JWT + Cookies):
+ * Educational guide for web application security (JWT + Cookies):
  * 
- * 1. Почему Access-токен хранится в памяти (`accessToken = token`), а не в LocalStorage?
- *    - Защита от XSS: вредоносные скрипты не могут украсть токен из памяти JS,
- *      в то время как к LocalStorage имеет доступ любой запущенный скрипт.
- * 2. Почему Refresh-токен лежит в Cookie с флагом `httpOnly`?
- *    - Флаг `httpOnly` делает куку невидимой для JavaScript (`document.cookie` её не видит).
- *      Браузер отправляет её на сервер автоматически при вызове `/api/v1/auth/refresh`.
- * 3. Как работает очередь повторных запросов (`failedQueue`):
- *    - Если пользователь открыл страницу, и 3 запроса одновременно вернули 401 (токен протух),
- *      клиент не шлёт 3 запроса на обновление! Он шлёт только ОДИН запрос к `/refresh`,
- *      а остальные запросы ставит на паузу в промис-очередь `failedQueue`.
- *    - Как только новый токен получен, все стоявшие на паузе запросы повторяются с новым токеном.
+ * 1. Why is the Access token kept only in-memory (`accessToken = token`) and not in LocalStorage?
+ *    - XSS mitigation: malicious scripts cannot steal tokens stored in JS memory,
+ *      whereas any injected script can read LocalStorage.
+ * 2. Why is the Refresh token stored in an `httpOnly` Cookie?
+ *    - The `httpOnly` flag makes the cookie inaccessible to JavaScript (`document.cookie` cannot view it).
+ *      The browser sends it automatically with requests to `/api/v1/auth/refresh`.
+ * 3. Request retry queue (`failedQueue`):
+ *    - If 3 parallel requests return 401 (expired token), the client avoids sending 3 refresh requests.
+ *      It initiates ONE request to `/refresh` while enqueuing other requests in `failedQueue`.
+ *    - Once the new token arrives, all queued requests replay seamlessly with the fresh token.
  * 4. RFC 7807 (Problem Details):
- *    - Стандарт возврата ошибок с сервера в формате `application/problem+json`
+ *    - Standardized error payload formatting in `application/problem+json`
  *      ({ type, title, status, detail, instance }).
  */
 
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 /**
- * Структура стандартной ошибки RFC 7807 (Problem Details)
+ * Standard RFC 7807 (Problem Details) schema
  */
 export interface ProblemDetailResponse {
   type: string;
@@ -35,17 +34,17 @@ export interface ProblemDetailResponse {
   invalid_params?: Array<{ loc: string[]; msg: string; type: string }>;
 }
 
-// Создаём настроенный инстанс Axios
+// Create configured Axios instance
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
-  withCredentials: true, // ОБЯЗАТЕЛЬНО: отправлять httpOnly cookies с каждым запросом
+  withCredentials: true, // REQUIRED: send httpOnly cookies with requests
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json, application/problem+json",
   },
 });
 
-// Access-токен хранится только в переменной модуля (в оперативной памяти)
+// Access token is kept only in module memory (RAM)
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
@@ -57,9 +56,8 @@ export function getAccessToken(): string | null {
 }
 
 /**
- * Request Interceptor (Перехватчик исходящих запросов):
- * Автоматически подставляет заголовок `Authorization: Bearer <token>` во все запросы,
- * если токен присутствует в памяти.
+ * Request Interceptor:
+ * Injects `Authorization: Bearer <token>` header if access token exists in memory.
  */
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken && config.headers) {
@@ -68,17 +66,17 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Флаг того, что процесс обновления токена уже запущен
+// Flag indicating a token refresh operation is actively in flight
 let isRefreshing = false;
 
-// Очередь запросов, ожидающих завершения обновления токена
+// Queue of pending requests waiting for a token refresh to finish
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
   reject: (reason?: unknown) => void;
 }> = [];
 
 /**
- * Обработка очереди ожидающих запросов
+ * Process queued requests after refresh completes or fails
  */
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -92,10 +90,10 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 /**
- * Response Interceptor (Перехватчик входящих ответов):
- * Если сервер возвращает 401 Unauthorized (и это не попытка логина/рефреша),
- * мы прозрачно для пользователя запрашиваем новый Access-токен по Refresh-куке
- * и повторяем оригинальный запрос.
+ * Response Interceptor:
+ * Catches 401 Unauthorized errors (excluding login/register/refresh endpoints),
+ * requests a fresh Access token via the httpOnly Refresh cookie,
+ * and replays the original request transparently.
  */
 apiClient.interceptors.response.use(
   (response) => response,
@@ -110,7 +108,7 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes("/auth/login") &&
       !originalRequest.url?.includes("/auth/register")
     ) {
-      // Если другой запрос уже запустил обновление токена — встаём в очередь ожидания
+      // If another request already started a refresh, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -124,12 +122,12 @@ apiClient.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      // Помечаем запрос, чтобы не уйти в бесконечный цикл повторов
+      // Mark request to prevent infinite loops
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Запрашиваем новый токен (Refresh токен уйдёт сам в cookie)
+        // Request fresh access token (Refresh cookie sent automatically by browser)
         const { data } = await axios.post<{ access_token: string }>(
           `${import.meta.env.VITE_API_URL || ""}/api/v1/auth/refresh`,
           {},
@@ -138,16 +136,16 @@ apiClient.interceptors.response.use(
         const newToken = data.access_token;
         setAccessToken(newToken);
 
-        // Разблокируем все запросы, которые ждали в очереди
+        // Resume all queued requests
         processQueue(null, newToken);
 
-        // Повторяем упавший запрос с новым токеном
+        // Replay failed request with new access token
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
         }
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Если даже рефреш провалился (например, сессия истекла через 30 дней) — сбрасываем авторизацию
+        // If refresh fails (e.g. session expired), clear auth state
         processQueue(refreshError, null);
         setAccessToken(null);
         return Promise.reject(refreshError);

@@ -1,24 +1,24 @@
 /**
  * ============================================================================
- * audio/engine.ts — Звуковой движок реального времени на Web Audio API
+ * audio/engine.ts — Real-time Audio Engine based on Web Audio API
  * ============================================================================
  * 
- * Архитектура и принципы работы Web Audio API (ликбез для новичков):
+ * Web Audio API architecture & core principles (learning guide):
  * 
- * 1. `AudioContext` — это главный звуковой процессор в браузере. Он управляет
- *    созданием узлов (AudioNode) и декодированием/генерацией аудиоданных.
- * 2. `AudioNode` — кирпичики звуковой цепи:
- *    - Источники: `OscillatorNode` (генераторы синуса, пилы, прямоугольника),
- *      `AudioBufferSourceNode` (буфер белого/розового шума или аудиофайл).
- *    - Модификаторы: `BiquadFilterNode` (фильтры частот: низких, высоких, полосовых),
- *      `GainNode` (регулятор громкости звука).
- *    - Приёмник (выход): `ctx.destination` (динамики / наушники пользователя).
- * 3. Маршрутизация (цепочка соединения):
- *    [Генератор шума/Осциллятор] -> [Фильтр частот] -> [Gain звука] -> [Master Gain] -> [Динамики]
- * 4. Преимущество процедурного синтеза:
- *    - Нулевой трафик: не нужно скачивать мегабайты тяжелых mp3/wav файлов.
- *    - Звук звучит естественно и никогда не повторяется один в один (за счёт рандома).
- *    - Громкость регулируется аппаратно без перерендеров интерфейса React.
+ * 1. `AudioContext` - The central audio processing graph manager in the browser.
+ *    It coordinates the lifecycle of audio nodes and audio decoding/synthesis.
+ * 2. `AudioNode` - Modular building blocks of the audio processing pipeline:
+ *    - Sources: `OscillatorNode` (synthesizing sine, saw, square, triangle waves),
+ *      `AudioBufferSourceNode` (playing white/pink noise buffers or audio files).
+ *    - Modifiers: `BiquadFilterNode` (lowpass, highpass, bandpass frequency shaping),
+ *      `GainNode` (volume and envelope control).
+ *    - Destination: `ctx.destination` (user's hardware speakers/headphones).
+ * 3. Routing (graph chain):
+ *    [Noise/Oscillator Source] -> [Biquad Filter] -> [Sound Gain] -> [Master Gain] -> [Destination]
+ * 4. Benefits of procedural sound synthesis:
+ *    - Zero network bandwidth: zero MBs of audio assets downloaded over the wire.
+ *    - Natural variety: random noise seeds ensure sounds never loop repetitively.
+ *    - Hardware gain control without causing React re-renders.
  */
 
 export type BuiltinSoundId =
@@ -37,8 +37,8 @@ export type SoundId = BuiltinSoundId | (string & {});
 type StopFn = () => void;
 
 /**
- * Создание буфера белого шума (случайные значения от -1.0 до 1.0)
- * Используется как основа для перфоратора, дрели, шипения помех связи
+ * Generate white noise buffer with uniform random values (-1.0 to 1.0)
+ * Serves as the raw audio foundation for hammer drills, jackhammers, and static interference
  */
 function createNoiseBuffer(ctx: AudioContext, durationSec = 2): AudioBuffer {
   const bufferSize = ctx.sampleRate * durationSec;
@@ -57,9 +57,9 @@ class AudioEngine {
   private volume: number = (35 / 100) * 0.9;
 
   /**
-   * Ленивая инициализация AudioContext при первом взаимодействии пользователя.
-   * Политика современных браузеров (Autoplay Policy) запрещает воспроизводить
-   * звук до того, как пользователь кликнет по странице.
+   * Lazy initialization of AudioContext on first user gesture.
+   * Modern browser Autoplay policies require user interaction before
+   * allowing audio graph activation.
    */
   private init(): { ctx: AudioContext; master: GainNode } {
     if (!this.ctx) {
@@ -127,7 +127,7 @@ class AudioEngine {
     this.activeSounds.set(id, stopFn);
   }
 
-  /* Воспроизведение пользовательского аудиофайла через HTMLAudioElement + MediaElementAudioSourceNode -> masterGain */
+  /* Playback of custom user audio file via HTMLAudioElement + MediaElementAudioSourceNode -> masterGain */
   private createAudioElementSource(ctx: AudioContext, destination: AudioNode, url: string): StopFn {
     const audio = new Audio();
     audio.crossOrigin = "anonymous";
@@ -187,7 +187,7 @@ class AudioEngine {
     return this.activeSounds.has(id);
   }
 
-  /* 1. Дрель: высокочастотный мотор + скрежет */
+  /* 1. Drill: high-frequency motor whine + wall friction resonance */
   private createDrill(ctx: AudioContext, destination: AudioNode): StopFn {
     const motor = ctx.createOscillator();
     motor.type = "sawtooth";
@@ -205,7 +205,7 @@ class AudioEngine {
     motorGain.gain.setValueAtTime(0.25, ctx.currentTime);
     motor.connect(motorGain);
 
-    // Скрежет стены (шум через полосовой фильтр)
+    // Wall scraping friction (bandpass filtered white noise)
     const noiseBuffer = createNoiseBuffer(ctx, 1.5);
     const noise = ctx.createBufferSource();
     noise.buffer = noiseBuffer;
@@ -243,7 +243,7 @@ class AudioEngine {
     };
   }
 
-  /* 2. Перфоратор: быстрые мощные удары 13 раз в секунду */
+  /* 2. Jackhammer: rapid acoustic hammer blows at ~13 Hz */
   private createJackhammer(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -298,7 +298,7 @@ class AudioEngine {
     };
   }
 
-  /* 3. Молоток: одиночные удары раз в ~800мс */
+  /* 3. Hammer: periodic strikes every ~850ms */
   private createHammer(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -307,7 +307,7 @@ class AudioEngine {
 
     const strike = () => {
       const t = ctx.currentTime;
-      // Металлический звон бойка
+      // Metallic ring of steel head
       const ping = ctx.createOscillator();
       ping.type = "sine";
       ping.frequency.setValueAtTime(980, t);
@@ -321,7 +321,7 @@ class AudioEngine {
       ping.start(t);
       ping.stop(t + 0.09);
 
-      // Глухой удар
+      // Deep physical impact thud
       const thud = ctx.createOscillator();
       thud.type = "triangle";
       thud.frequency.setValueAtTime(220, t);
@@ -350,7 +350,7 @@ class AudioEngine {
     };
   }
 
-  /* 4. Плач ребёнка: плачущие модулированные стоны */
+  /* 4. Baby crying: modulated whining vocal loops */
   private createBaby(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -365,7 +365,7 @@ class AudioEngine {
       osc.frequency.linearRampToValueAtTime(720, t + 0.4);
       osc.frequency.linearRampToValueAtTime(480, t + 0.9);
 
-      // вибрато
+      // Vibrato LFO
       const vib = ctx.createOscillator();
       vib.type = "sine";
       vib.frequency.setValueAtTime(5.5, t);
@@ -374,7 +374,7 @@ class AudioEngine {
       vib.connect(vibGain);
       vibGain.connect(osc.frequency);
 
-      // формантный фильтр под детский голос
+      // Formant vocal filter for child voice
       const filter = ctx.createBiquadFilter();
       filter.type = "bandpass";
       filter.frequency.setValueAtTime(1500, t);
@@ -408,7 +408,7 @@ class AudioEngine {
     };
   }
 
-  /* 5. Лай собаки: двойной лай через паузы */
+  /* 5. Dog barking: double-bark pattern with pauses */
   private createDog(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -457,7 +457,7 @@ class AudioEngine {
     };
   }
 
-  /* 6. «Мам, где носки?»: глухой крик через стену */
+  /* 6. "Mom, where are my socks?": muffled shout through the wall */
   private createSocks(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -465,7 +465,7 @@ class AudioEngine {
     soundGain.connect(destination);
 
     const shout = () => {
-      // 3 слога сквозь стену: МАМ! ГДЕ! НОС-КИ?!
+      // 3 vocal syllables through the drywall: MOM! WHERE! ARE MY SOCKS?!
       const syllables = [
         { freq: 280, dur: 0.22, delay: 0 },
         { freq: 320, dur: 0.18, delay: 0.28 },
@@ -479,7 +479,7 @@ class AudioEngine {
         osc.frequency.setValueAtTime(syl.freq, t);
         osc.frequency.linearRampToValueAtTime(syl.freq * 0.9, t + syl.dur);
 
-        // Глухой фильтр стены (Lowpass 500Hz)
+        // Muffled wall dampening filter (Lowpass 520Hz)
         const wallFilter = ctx.createBiquadFilter();
         wallFilter.type = "lowpass";
         wallFilter.frequency.setValueAtTime(520, t);
@@ -511,7 +511,7 @@ class AudioEngine {
     };
   }
 
-  /* 7. Статический шум: белый шум + флуктуации */
+  /* 7. Static noise: filtered white noise + fluctuations */
   private createStatic(ctx: AudioContext, destination: AudioNode): StopFn {
     const buffer = createNoiseBuffer(ctx, 2.0);
     const noise = ctx.createBufferSource();
@@ -542,7 +542,7 @@ class AudioEngine {
     };
   }
 
-  /* 8. Робот-голос: кольцевая модуляция и прерывания связи */
+  /* 8. Robotic voice: ring modulation + choppy packet loss */
   private createRobot(ctx: AudioContext, destination: AudioNode): StopFn {
     const carrier = ctx.createOscillator();
     carrier.type = "sawtooth";
@@ -558,7 +558,7 @@ class AudioEngine {
     mod.connect(ringModGain.gain);
     carrier.connect(ringModGain);
 
-    // Прерывания (лаги связи)
+    // Chopper (audio packet loss simulation)
     const chopper = ctx.createOscillator();
     chopper.type = "square";
     chopper.frequency.setValueAtTime(7, ctx.currentTime);
@@ -586,7 +586,7 @@ class AudioEngine {
     };
   }
 
-  /* 9. Звонок в дверь: классический двухтональный Ding-Dong раз в 4 сек */
+  /* 9. Doorbell: classic two-tone ding-dong chime every ~4s */
   private createDoorbell(ctx: AudioContext, destination: AudioNode): StopFn {
     let timer: number | null = null;
     const soundGain = ctx.createGain();
@@ -595,7 +595,7 @@ class AudioEngine {
 
     const chime = () => {
       const t = ctx.currentTime;
-      // Дин (E5 ~659 Hz)
+      // Ding (E5 ~659 Hz)
       const osc1 = ctx.createOscillator();
       osc1.type = "sine";
       osc1.frequency.setValueAtTime(659.25, t);
@@ -609,7 +609,7 @@ class AudioEngine {
       osc1.start(t);
       osc1.stop(t + 1.3);
 
-      // Дон (C5 ~523 Hz) через 350 мс
+      // Dong (C5 ~523 Hz) 350ms later
       const t2 = t + 0.35;
       const osc2 = ctx.createOscillator();
       osc2.type = "sine";
