@@ -4,7 +4,6 @@ import uuid
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import ClientError
 
 from app.core.config import get_settings
 
